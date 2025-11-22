@@ -6,6 +6,9 @@ on:
     - cron: '*/15 * * * *'
   workflow_dispatch: # Allows you to run it manually by button click
 
+permissions:
+  contents: write
+
 jobs:
   run-script:
     runs-on: ubuntu-latest
