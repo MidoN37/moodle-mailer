@@ -43,8 +43,8 @@ Subject: {subject}
 Ми підготували повну та актуальну базу всіх запитань із «Центр тестування» разом із правильними відповідями. Це найновіше оновлення, зібране у зручному форматі, щоб допомогти швидко та впевнено підготуватися.
 
 Ми пропонуємо два варіанти:
-PDF-файл з усіма запитаннями й відповідями – 199 грн
-Google Form з інтерактивним тестуванням – 299 грн
+PDF-файл з усіма запитаннями й відповідями – 299 грн
+Google Form з інтерактивним тестуванням – 399 грн
 
 Оплата приймається через картку Monobank. Після оплати ми одразу надсилаємо останню версію матеріалів.
 
@@ -67,8 +67,8 @@ Hello {user_name} from {city},
 We have prepared the complete and fully updated database of all questions from “Center of Testing,” including the correct answers.
 
 We offer two options:
-PDF file with all questions and answers – 199 UAH
-Google Form interactive test version – 299 UAH
+PDF file with all questions and answers – 299 UAH
+Google Form interactive test version – 399 UAH
 
 We accept payment via Monobank card. Before paying, you can contact us on Telegram.
 
