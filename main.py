@@ -40,17 +40,19 @@ Subject: {subject}
 
 Вітаємо, {user_name} із {city}!
 
-Ми підготували повну та актуальну базу всіх запитань із «Центр тестування» разом із правильними відповідями. Це найновіше оновлення, зібране у зручному форматі, щоб допомогти швидко та впевнено підготуватися.
+Ми отримали вашу електронну адресу з відкритих даних «Центру тестування» – це публічна інформація, доступна всім.
 
-Ми пропонуємо два варіанти:
-PDF-файл з усіма запитаннями й відповідями – 299 грн
-Google Form з інтерактивним тестуванням – 399 грн
+Хочемо запропонувати вам повну та актуальну базу всіх запитань із «Центр тестування» разом із правильними відповідями. На відміну від офіційних 150-питань тестів, які постійно оновлюються та видаляються — і де складно побачити весь банк запитань — ми надаємо всю базу повністю.
 
-Оплата приймається через картку Monobank. Після оплати ми одразу надсилаємо останню версію матеріалів.
+Доступні два формати:
+	•	PDF-файл з усіма запитаннями та відповідями — 299 грн
+	•	QUIZ-формат, у якому вся база поділена на блоки по 50 питань. Ви можете проходити кожен блок необмежену кількість разів, поки не вивчите всі варіанти напам’ять — 399 грн
 
-Перед оплатою ви можете написати нам у Telegram, і ми відповімо на всі запитання та пояснимо, як усе працює.
+Оплата здійснюється через картку Monobank, і після оплати ви одразу отримуєте найновішу версію.
 
-Будемо раді допомогти вам у підготовці!
+Перед оплатою ви можете написати нам у Telegram: @kovalkatia , де ми детально пояснимо, як працюють матеріали, і відповімо на всі ваші запитання.
+
+Будемо раді допомогти у вашій підготовці!
 
 З повагою,
 Команда підтримки
@@ -64,13 +66,17 @@ Subject: Updated “Center of Testing” Question Database – Now in PDF & Goog
 
 Hello {user_name} from {city},
 
-We have prepared the complete and fully updated database of all questions from “Center of Testing,” including the correct answers.
+We received your email from publicly available “Center of Testing” data — this information is open and accessible to anyone.
 
-We offer two options:
-PDF file with all questions and answers – 299 UAH
-Google Form interactive test version – 399 UAH
+We offer the complete and fully updated database of all “Center of Testing” questions with correct answers. Unlike the official 150-question tests that constantly rotate, disappear, and never show you the full bank, we provide the entire database in one place.
 
-We accept payment via Monobank card. Before paying, you can contact us on Telegram.
+You can choose between two formats:
+	•	PDF file with all questions and answers — 299 UAH
+	•	QUIZ format, where the full database is divided into convenient 50-question chunks. You can retake each chunk unlimited times until you fully memorize all variations — 399 UAH
+
+Payment is accepted via Monobank card, and once payment is confirmed, you immediately receive the latest updated version.
+
+Before paying, you can contact us on Telegram @kovalkatia , where we will explain everything clearly and answer any questions.
 
 Best regards,
 Support Team
