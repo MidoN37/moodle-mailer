@@ -2,8 +2,8 @@ name: Run Scraper and Email
 
 on:
   schedule:
-    # Runs every 25 minutes
-    - cron: '*/25 * * * *'
+    # Runs every 20 minutes
+    - cron: '*/20 * * * *'
   workflow_dispatch:
 
 permissions:
