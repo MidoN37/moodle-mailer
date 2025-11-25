@@ -40,50 +40,11 @@ def send_email(to_email, user_name, city):
     subject = "Оновлена база питань «Центр тестування» – доступна у PDF та Google Form"
     
     body = f"""
-УКРАЇНСЬКА ВЕРСІЯ
+Вітаю, {user_name} із {city}!
 
-Вітаємо, {user_name} із {city}!
+Підкажіть, будь ласка, ви зараз готуєтеся до тестів «Центру тестування»?
 
-Ми отримали вашу електронну адресу з відкритих даних «Центру тестування» – це публічна інформація, доступна всім.
-
-Хочемо запропонувати вам повну та актуальну базу всіх запитань із «Центр тестування» разом із правильними відповідями. На відміну від офіційних 150-питань тестів, які постійно оновлюються та видаляються — і де складно побачити весь банк запитань — ми надаємо всю базу повністю.
-
-Доступні два формати:
-	•	PDF-файл з усіма запитаннями та відповідями — 299 грн
-	•	QUIZ-формат, у якому вся база поділена на блоки по 50 питань. Ви можете проходити кожен блок необмежену кількість разів, поки не вивчите всі варіанти напам’ять — 399 грн
-
-Оплата здійснюється через картку Monobank, і після оплати ви одразу отримуєте найновішу версію.
-
-Перед оплатою ви можете написати нам у Telegram: @kovalkatia , де ми детально пояснимо, як працюють матеріали, і відповімо на всі ваші запитання.
-
-Будемо раді допомогти у вашій підготовці!
-
-З повагою,
-Команда підтримки
-{TELEGRAM_LINK}
-
-=====================
-
-ENGLISH VERSION
-
-Subject: Updated “Center of Testing” Question Database – Now in PDF & Google Form
-
-Hello {user_name} from {city},
-
-We received your email from publicly available “Center of Testing” data — this information is open and accessible to anyone.
-
-We offer the complete and fully updated database of all “Center of Testing” questions with correct answers. Unlike the official 150-question tests that constantly rotate, disappear, and never show you the full bank, we provide the entire database in one place.
-
-You can choose between two formats:
-	•	PDF file with all questions and answers — 299 UAH
-	•	QUIZ format, where the full database is divided into convenient 50-question chunks. You can retake each chunk unlimited times until you fully memorize all variations — 399 UAH
-
-Payment is accepted via Monobank card, and once payment is confirmed, you immediately receive the latest updated version.
-
-Before paying, you can contact us on Telegram @kovalkatia , where we will explain everything clearly and answer any questions.
-
-Best regards,
-Support Team
+Маю щось корисне для вашої підготовки. Якщо зручно — напишіть мені в Telegram, коротко поясню, що саме:
 {TELEGRAM_LINK}
 """
 
