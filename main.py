@@ -151,6 +151,10 @@ def main():
         # 1. Email: Extract from "Email address" section
         email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="mailto:([^"]+)">([^<]+)</a></dd>', profile_page)
         
+        # DEBUG: Print first 3 users to see what we're getting
+        if user_id in list(user_ids)[:3]:
+            print(f"[DEBUG] User {user_id} profile snippet:\n{profile_page[profile_page.find('Email address')-200:profile_page.find('Email address')+500]}\n")
+        
         # 2. Name: Look for the h1 header
         name_match = re.search(r'<h1 class="h2">(.*?)</h1>', profile_page)
         
