@@ -3,6 +3,7 @@ import requests
 import smtplib
 import time
 import re
+import html
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from urllib.parse import unquote
@@ -148,12 +149,8 @@ def main():
 
         # --- EXTRACTION FROM USER DETAILS CARD ---
         
-        # 1. Email: Extract from "Email address" section
-        email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="mailto:([^"]+)">([^<]+)</a></dd>', profile_page)
-        
-        # DEBUG: Print first 3 users to see what we're getting
-        if user_id in list(user_ids)[:3]:
-            print(f"[DEBUG] User {user_id} profile snippet:\n{profile_page[profile_page.find('Email address')-200:profile_page.find('Email address')+500]}\n")
+        # 1. Email: Extract from "Email address" section (with HTML entity decoding)
+        email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="[^"]*">([^<]+)</a></dd>', profile_page)
         
         # 2. Name: Look for the h1 header
         name_match = re.search(r'<h1 class="h2">(.*?)</h1>', profile_page)
@@ -162,7 +159,10 @@ def main():
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
-            email = email_match.group(2).strip()  # Use the plain text email from the link
+            # Decode HTML entities and URL encoding
+            email = html.unescape(email_match.group(1).strip())
+            email = unquote(email)
+            
             full_name = name_match.group(1).strip() if name_match else "Student"
             city = city_match.group(1).strip() if city_match else "Ukraine"
 
