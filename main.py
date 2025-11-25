@@ -3,10 +3,8 @@ import requests
 import smtplib
 import time
 import re
-import html
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from urllib.parse import unquote
 
 # --- CONFIGURATION ---
 MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
@@ -149,7 +147,7 @@ def main():
 
         # --- EXTRACTION FROM USER DETAILS CARD ---
         
-        # 1. Email: Extract from "Email address" section (with HTML entity decoding)
+        # 1. Email: Extract from "Email address" section - just grab the visible text
         email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="[^"]*">([^<]+)</a></dd>', profile_page)
         
         # 2. Name: Look for the h1 header
@@ -159,10 +157,7 @@ def main():
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
-            # Decode HTML entities and URL encoding
-            email = html.unescape(email_match.group(1).strip())
-            email = unquote(email)
-            
+            email = email_match.group(1).strip()
             full_name = name_match.group(1).strip() if name_match else "Student"
             city = city_match.group(1).strip() if city_match else "Ukraine"
 
