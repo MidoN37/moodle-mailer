@@ -12,18 +12,19 @@ MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0"
 HISTORY_FILE = "history.txt"
 MAX_EMAILS_PER_RUN = 20 
 
-# --- SECRETS & CREDENTIALS ---
+# --- SECRETS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
 TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
-# BREVO CONFIGURATION
-# This is the ID used to login to the server (e.g. 9c800...@smtp-brevo.com)
-SMTP_LOGIN_USER = os.environ.get("GMAIL_USER") 
-# This is the API Key/Password
-SMTP_LOGIN_PASS = os.environ.get("GMAIL_APP_PASS") 
-# This is the address people will actually see (MUST be verified in Brevo)
-VISIBLE_SENDER_EMAIL = "kathryncoleman77@gmail.com" 
+# --- BREVO EMAIL SETTINGS ---
+# 1. The Login ID (e.g. 9c800...@smtp-brevo.com) - Stored in GMAIL_USER secret
+SMTP_LOGIN = os.environ.get("GMAIL_USER") 
+# 2. The API Key (e.g. xsmtpsib-...) - Stored in GMAIL_APP_PASS secret
+SMTP_PASSWORD = os.environ.get("GMAIL_APP_PASS") 
+# 3. The Verified Sender Email (Must match what you verified in Brevo)
+# Recipients will see this email address.
+VERIFIED_SENDER_EMAIL = "kathryncoleman77@gmail.com" 
 
 def get_sent_history():
     if not os.path.exists(HISTORY_FILE):
@@ -87,7 +88,7 @@ Support Team
 """
 
     msg = MIMEMultipart()
-    msg['From'] = VISIBLE_SENDER_EMAIL  # Send as kathryncoleman77...
+    msg['From'] = VERIFIED_SENDER_EMAIL # What the user sees
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
@@ -97,10 +98,11 @@ Support Team
     smtp_port = 587
 
     try:
+        # Use standard SMTP with STARTTLS for Brevo (Not SMTP_SSL)
         server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls() # Required for Brevo
-        # Login using the Brevo ID, not the email address
-        server.login(SMTP_LOGIN_USER, SMTP_LOGIN_PASS) 
+        server.starttls() 
+        # Login with the Brevo ID and Key
+        server.login(SMTP_LOGIN, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
         return True
@@ -135,8 +137,10 @@ def main():
     
     print("Login successful.")
 
-    # 2. GET USERS
+    # 2. GET USERS (Dashboard)
     response = session.get(MOODLE_ONLINE_USERS_URL)
+    
+    # Regex matches: user/view.php?id=12345...
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
     print(f"Found {len(user_ids)} active users.")
 
@@ -161,7 +165,6 @@ def main():
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
-            # Cleanup email string
             from urllib.parse import unquote
             email = unquote(email_match.group(1).strip())
             
@@ -182,11 +185,10 @@ def main():
                 print(f"SUCCESS: Email sent to {email}")
                 save_to_history(email)
                 emails_sent_count += 1
-                time.sleep(2) # Fast but polite
+                time.sleep(2) # Polite delay
             else:
                 print(f"FAILED: Could not send to {email}")
         else:
-            # No email found (hidden by user)
             pass
         
     print("Job Done.")
