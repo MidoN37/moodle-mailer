@@ -8,7 +8,8 @@ from email.mime.multipart import MIMEMultipart
 
 # --- CONFIGURATION ---
 MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
-MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" # Changed to dashboard
+# Use the main dashboard URL where the side block exists
+MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" 
 HISTORY_FILE = "history.txt"
 MAX_EMAILS_PER_RUN = 20
 
@@ -130,8 +131,8 @@ def main():
     # 2. GET USERS (Dashboard)
     response = session.get(MOODLE_ONLINE_USERS_URL)
     
-    # Fix: The regex needs to match the structure in the dashboard HTML
-    # href=".../user/view.php?id=119735&course=1"
+    # Fix: Flexible regex to catch IDs even if URL has &amp; or other params
+    # Matches: user/view.php?id=12345...
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
     print(f"Found {len(user_ids)} active users.")
 
@@ -143,17 +144,35 @@ def main():
             print(f"SAFETY LIMIT REACHED: {MAX_EMAILS_PER_RUN} emails sent. Stopping.")
             break
 
+        # Get Profile
         profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
         profile_page = session.get(profile_url).text
 
-        email_match = re.search(r'mailto:([\w\.-]+@[\w\.-]+)', profile_page)
-        name_match = re.search(r'<title>(.*?)[:|-]', profile_page)
+        # --- ROBUST EXTRACTION ---
+        
+        # 1. Email: Look for mailto link or text with @ symbol
+        email_match = re.search(r'mailto:([^\"]+)', profile_page)
+        if not email_match:
+             # Fallback: Look for raw text email if mailto is obfuscated
+             email_match = re.search(r'([\w\.-]+@[\w\.-]+\.\w+)', profile_page)
+        
+        # 2. Name: Look for the h1 header which usually contains the name
+        name_match = re.search(r'<h1 class="h2">(.*?)</h1>', profile_page)
+        
+        # 3. City: Look for the dd tag after City/town dt
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
-            email = email_match.group(1)
+            # Decode URL encoded chars (like %40 for @)
+            from urllib.parse import unquote
+            email = unquote(email_match.group(1))
+            
             full_name = name_match.group(1).strip() if name_match else "Student"
             city = city_match.group(1).strip() if city_match else "Ukraine"
+
+            # Cleanup junk emails
+            if "javascript" in email or "testcentr" in email:
+                continue
 
             if email in sent_history:
                 print(f"Skipping {full_name} (Already sent).")
@@ -168,6 +187,9 @@ def main():
                 time.sleep(5) 
             else:
                 print(f"FAILED: Could not send to {email}")
+        else:
+             # Silent skip if no email (privacy settings)
+             pass
         
     print("Job Done.")
 
