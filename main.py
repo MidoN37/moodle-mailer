@@ -5,10 +5,10 @@ import time
 import re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from urllib.parse import unquote
 
 # --- CONFIGURATION ---
 MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
-# Use the main dashboard URL where the side block exists
 MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" 
 HISTORY_FILE = "history.txt"
 MAX_EMAILS_PER_RUN = 20
@@ -44,7 +44,7 @@ def send_email(to_email, user_name, city):
 
 Доступні два формати:
 	•	PDF-файл з усіма запитаннями та відповідями — 299 грн
-	•	QUIZ-формат, у якому вся база поділена на блоки по 50 питань. Ви можете проходити кожен блок необмежену кількість разів, поки не вивчите всі варіанти напам’ять — 399 грн
+	•	QUIZ-формат, у якому вся база поділена на блоки по 50 питань. Ви можете проходити кожен блок необмежену кількість разів, поки не вивчите всі варіанти напам'ять — 399 грн
 
 Оплата здійснюється через картку Monobank, і після оплати ви одразу отримуєте найновішу версію.
 
@@ -60,13 +60,13 @@ def send_email(to_email, user_name, city):
 
 ENGLISH VERSION
 
-Subject: Updated “Center of Testing” Question Database – Now in PDF & Google Form
+Subject: Updated "Center of Testing" Question Database – Now in PDF & Google Form
 
 Hello {user_name} from {city},
 
-We received your email from publicly available “Center of Testing” data — this information is open and accessible to anyone.
+We received your email from publicly available "Center of Testing" data — this information is open and accessible to anyone.
 
-We offer the complete and fully updated database of all “Center of Testing” questions with correct answers. Unlike the official 150-question tests that constantly rotate, disappear, and never show you the full bank, we provide the entire database in one place.
+We offer the complete and fully updated database of all "Center of Testing" questions with correct answers. Unlike the official 150-question tests that constantly rotate, disappear, and never show you the full bank, we provide the entire database in one place.
 
 You can choose between two formats:
 	•	PDF file with all questions and answers — 299 UAH
@@ -87,12 +87,12 @@ Support Team
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
+    # Use SMTP_SSL with port 465 instead of STARTTLS with port 587
     smtp_server = "smtp.office365.com"
-    smtp_port = 587
+    smtp_port = 465
 
     try:
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
+        server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10)
         server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)
         server.quit()
@@ -131,8 +131,6 @@ def main():
     # 2. GET USERS (Dashboard)
     response = session.get(MOODLE_ONLINE_USERS_URL)
     
-    # Fix: Flexible regex to catch IDs even if URL has &amp; or other params
-    # Matches: user/view.php?id=12345...
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
     print(f"Found {len(user_ids)} active users.")
 
@@ -148,31 +146,21 @@ def main():
         profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
         profile_page = session.get(profile_url).text
 
-        # --- ROBUST EXTRACTION ---
+        # --- EXTRACTION FROM USER DETAILS CARD ---
         
-        # 1. Email: Look for mailto link or text with @ symbol
-        email_match = re.search(r'mailto:([^\"]+)', profile_page)
-        if not email_match:
-             # Fallback: Look for raw text email if mailto is obfuscated
-             email_match = re.search(r'([\w\.-]+@[\w\.-]+\.\w+)', profile_page)
+        # 1. Email: Extract from "Email address" section
+        email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="mailto:([^"]+)">([^<]+)</a></dd>', profile_page)
         
-        # 2. Name: Look for the h1 header which usually contains the name
+        # 2. Name: Look for the h1 header
         name_match = re.search(r'<h1 class="h2">(.*?)</h1>', profile_page)
         
-        # 3. City: Look for the dd tag after City/town dt
+        # 3. City: Extract from "City/town" section
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
-            # Decode URL encoded chars (like %40 for @)
-            from urllib.parse import unquote
-            email = unquote(email_match.group(1))
-            
+            email = email_match.group(2).strip()  # Use the plain text email from the link
             full_name = name_match.group(1).strip() if name_match else "Student"
             city = city_match.group(1).strip() if city_match else "Ukraine"
-
-            # Cleanup junk emails
-            if "javascript" in email or "testcentr" in email:
-                continue
 
             if email in sent_history:
                 print(f"Skipping {full_name} (Already sent).")
@@ -187,9 +175,6 @@ def main():
                 time.sleep(5) 
             else:
                 print(f"FAILED: Could not send to {email}")
-        else:
-             # Silent skip if no email (privacy settings)
-             pass
         
     print("Job Done.")
 
