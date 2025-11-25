@@ -12,7 +12,9 @@ from email.mime.multipart import MIMEMultipart
 MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
 MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" 
 HISTORY_FILE = "history.txt"
-MAX_EMAILS_PER_RUN = 20 
+
+# --- INCREASED LIMIT ---
+MAX_EMAILS_PER_RUN = 100  # Increased from 20 to 100
 
 # --- SECRETS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
@@ -152,23 +154,15 @@ def main():
         profile_page = session.get(profile_url).text
 
         # --- ROBUST EXTRACTION ---
-        
-        # 1. Email Extraction (With Cleanup)
         email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="[^"]*">([^<]+)</a></dd>', profile_page)
-        
-        # 2. Name Extraction
         name_match = re.search(r'<h1 class="h2">(.*?)</h1>', profile_page)
-        
-        # 3. City Extraction
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
             raw_email = email_match.group(1).strip()
             
-            # --- FIX: Decode HTML Entities (&#114; -> r) ---
-            # 1. Decode URL encoding (%40 -> @)
+            # FIX: Decode HTML Entities
             email = unquote(raw_email)
-            # 2. Decode HTML entities (&#114; -> r)
             email = html.unescape(email)
             
             full_name = name_match.group(1).strip() if name_match else "Student"
