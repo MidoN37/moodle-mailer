@@ -221,6 +221,7 @@ def main():
                     continue
 
                 if email in sent_history:
+					print(f"Skipping {full_name} - Already sent")
                     continue
 
                 print(f"Processing {full_name} ({email})...")
