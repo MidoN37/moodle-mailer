@@ -45,7 +45,6 @@ def get_brevo_usage():
     """Reads the quota file. Resets if date has changed."""
     today_str = str(datetime.date.today())
     
-    # If file doesn't exist, create it with 0
     if not os.path.exists(QUOTA_FILE):
         return 0
 
@@ -53,9 +52,6 @@ def get_brevo_usage():
         with open(QUOTA_FILE, "r") as f:
             data = json.load(f)
             
-        # If the date in file is not today, it means it's a new day.
-        # We return 0. The file will be updated with the new date 
-        # when we call increment_brevo_usage().
         if data.get("date") != today_str:
             return 0
         
@@ -79,7 +75,6 @@ def increment_brevo_usage():
 # --- HISTORY ---
 def get_sent_history():
     if not os.path.exists(HISTORY_FILE):
-        # Create file if missing
         open(HISTORY_FILE, 'a').close()
         return set()
     with open(HISTORY_FILE, "r") as f:
@@ -132,8 +127,6 @@ def send_smart_email(to_email, user_name, city):
 
     # 1. CHECK QUOTA
     brevo_usage = get_brevo_usage()
-    
-    # Logic: Only use Brevo if usage is low AND credentials exist
     use_brevo = (brevo_usage < BREVO_DAILY_LIMIT) and (BREVO_USER is not None)
 
     # 2. ATTEMPT BREVO
@@ -221,7 +214,7 @@ def main():
                     continue
 
                 if email in sent_history:
-					print(f"Skipping {full_name} - Already sent")
+                    print(f"Skipping {full_name} (Already sent).")
                     continue
 
                 print(f"Processing {full_name} ({email})...")
