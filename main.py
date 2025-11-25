@@ -2,6 +2,7 @@ import os
 import requests
 import smtplib
 import time
+import re
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -14,7 +15,6 @@ MAX_EMAILS_PER_RUN = 20  # Safety limit to avoid spam blocks
 # --- SECRETS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
-# NOTE: We reuse GMAIL_USER/PASS variable names for Outlook to avoid changing workflow file
 SENDER_EMAIL = os.environ.get("GMAIL_USER") 
 SENDER_PASSWORD = os.environ.get("GMAIL_APP_PASS") 
 TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
@@ -108,16 +108,31 @@ def main():
 
     session = requests.Session()
 
-    # 1. Login
+    # 1. LOGIN (With Token Extraction)
+    print("Attempting login...")
+    
+    # A. Get login page to find logintoken
+    login_page = session.get(MOODLE_LOGIN_URL)
+    token_match = re.search(r'name="logintoken" value="([^"]+)"', login_page.text)
+    login_token = token_match.group(1) if token_match else ""
+
+    # B. Post Credentials + Token
     login_payload = {
         "username": MOODLE_USER,
-        "password": MOODLE_PASS
+        "password": MOODLE_PASS,
+        "logintoken": login_token
     }
     
     response = session.post(MOODLE_LOGIN_URL, data=login_payload)
-    if "login/index.php" in response.url: # If still on login page, it failed
-        print("Login failed. Check credentials.")
+    
+    # C. Verify Login (Check for logout link which only appears when logged in)
+    if "login/logout.php" not in response.text:
+        print("Login failed.")
+        print(f"Final URL: {response.url}")
+        # Debug snippet (first 200 chars)
+        print(f"Debug Info: {response.text[:200]}")
         return
+    
     print("Login successful.")
 
     # 2. Get Online Users
@@ -126,12 +141,7 @@ def main():
         print("Failed to fetch online users page.")
         return
 
-    # Simple parsing for user links (Regex is robust enough here)
-    # Format: href=".../user/view.php?id=12345..."
-    import re
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
-    
-    # Remove self (if known) or admin IDs usually low numbers, but safe to keep all
     print(f"Found {len(user_ids)} active users.")
 
     sent_history = get_sent_history()
@@ -143,14 +153,12 @@ def main():
             break
 
         # Get User Profile
-        profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1" # course=1 usually works for general view
+        profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
         profile_page = session.get(profile_url).text
 
-        # Extract Email
+        # Extract Info
         email_match = re.search(r'mailto:([\w\.-]+@[\w\.-]+)', profile_page)
-        # Extract Name (Title of page usually "Name - User profile")
         name_match = re.search(r'<title>(.*?)[:|-]', profile_page)
-        # Extract City
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
@@ -168,7 +176,6 @@ def main():
                 print(f"SUCCESS: Email sent to {email}")
                 save_to_history(email)
                 emails_sent_count += 1
-                # Sleep to be polite to SMTP server
                 time.sleep(5) 
             else:
                 print(f"FAILED: Could not send to {email}")
