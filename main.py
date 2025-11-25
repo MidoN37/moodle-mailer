@@ -1,41 +1,38 @@
+import os
 import requests
-from bs4 import BeautifulSoup
 import smtplib
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-import os
-import time
 
-# --- CONFIGURATION FROM ENVIRONMENT VARIABLES ---
-MOODLE_USER = os.environ["MOODLE_USER"]
-MOODLE_PASS = os.environ["MOODLE_PASS"]
-GMAIL_USER = os.environ["GMAIL_USER"]
-GMAIL_APP_PASS = os.environ["GMAIL_APP_PASS"]
-TELEGRAM_LINK = os.environ["TELEGRAM_LINK"]
+# --- CONFIGURATION ---
+MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
+MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/blocks/online_users/view.php"
+HISTORY_FILE = "history.txt"
+MAX_EMAILS_PER_RUN = 20  # Safety limit to avoid spam blocks
 
-# --- SETUP SESSION ---
-session = requests.Session()
-session.headers.update({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-})
+# --- SECRETS ---
+MOODLE_USER = os.environ.get("MOODLE_USER")
+MOODLE_PASS = os.environ.get("MOODLE_PASS")
+# NOTE: We reuse GMAIL_USER/PASS variable names for Outlook to avoid changing workflow file
+SENDER_EMAIL = os.environ.get("GMAIL_USER") 
+SENDER_PASSWORD = os.environ.get("GMAIL_APP_PASS") 
+TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
-def load_history():
-    if not os.path.exists("history.txt"):
+def get_sent_history():
+    if not os.path.exists(HISTORY_FILE):
         return set()
-    with open("history.txt", "r") as f:
+    with open(HISTORY_FILE, "r") as f:
         return set(line.strip() for line in f)
 
-def append_to_history(user_id):
-    with open("history.txt", "a") as f:
-        f.write(f"{user_id}\n")
+def save_to_history(email):
+    with open(HISTORY_FILE, "a") as f:
+        f.write(email + "\n")
 
 def send_email(to_email, user_name, city):
     subject = "Оновлена база питань «Центр тестування» – доступна у PDF та Google Form"
     
     body = f"""
-To: {to_email}
-Subject: {subject}
-
 УКРАЇНСЬКА ВЕРСІЯ
 
 Вітаємо, {user_name} із {city}!
@@ -81,101 +78,102 @@ Before paying, you can contact us on Telegram @kovalkatia , where we will explai
 Best regards,
 Support Team
 {TELEGRAM_LINK}
-    """
+"""
 
     msg = MIMEMultipart()
-    msg['From'] = GMAIL_USER
+    msg['From'] = SENDER_EMAIL
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
+    # OUTLOOK SETTINGS
+    smtp_server = "smtp.office365.com"
+    smtp_port = 587
+
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
-        server.login(GMAIL_USER, GMAIL_APP_PASS)
+        server.login(SENDER_EMAIL, SENDER_PASSWORD)
         server.send_message(msg)
         server.quit()
-        print(f"SUCCESS: Email sent to {to_email}")
         return True
     except Exception as e:
         print(f"FAILED: Could not send email to {to_email}. Error: {e}")
         return False
 
-def login():
-    login_url = "https://test.testcentr.org.ua/login/index.php"
-    try:
-        r = session.get(login_url)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        token = soup.find('input', {'name': 'logintoken'})['value']
-        
-        payload = {'username': MOODLE_USER, 'password': MOODLE_PASS, 'logintoken': token}
-        r = session.post(login_url, data=payload)
-        
-        if "login/index.php" in r.url:
-            print("Login failed.")
-            return False
-        print("Login successful.")
-        return True
-    except Exception as e:
-        print(f"Login error: {e}")
-        return False
-
-def get_profile_info(profile_url):
-    try:
-        r = session.get(profile_url)
-        soup = BeautifulSoup(r.text, 'html.parser')
-        
-        email_dt = soup.find('dt', string="Email address")
-        email = email_dt.find_next('dd').get_text(strip=True) if email_dt else None
-        
-        city_dt = soup.find('dt', string="City/town")
-        city = city_dt.find_next('dd').get_text(strip=True) if city_dt else "your city"
-        
-        return email, city
-    except:
-        return None, None
-
 def main():
-    sent_users = load_history()
-    
-    if not login():
+    if not MOODLE_USER or not MOODLE_PASS:
+        print("Error: Credentials missing.")
         return
 
-    main_url = "https://test.testcentr.org.ua/?redirect=0"
-    response = session.get(main_url)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    session = requests.Session()
+
+    # 1. Login
+    login_payload = {
+        "username": MOODLE_USER,
+        "password": MOODLE_PASS
+    }
     
-    user_links = soup.select('li.listentry div.user a')
-    print(f"Found {len(user_links)} active users.")
+    response = session.post(MOODLE_LOGIN_URL, data=login_payload)
+    if "login/index.php" in response.url: # If still on login page, it failed
+        print("Login failed. Check credentials.")
+        return
+    print("Login successful.")
 
-    for user in user_links:
-        name = user.get_text(strip=True)
-        initials = user.find('span', class_='userinitials')
-        if initials:
-            name = name.replace(initials.get_text(strip=True), "").strip()
+    # 2. Get Online Users
+    response = session.get(MOODLE_ONLINE_USERS_URL)
+    if response.status_code != 200:
+        print("Failed to fetch online users page.")
+        return
 
-        if "el mahdi nih" in name.lower():
-            continue
+    # Simple parsing for user links (Regex is robust enough here)
+    # Format: href=".../user/view.php?id=12345..."
+    import re
+    user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
+    
+    # Remove self (if known) or admin IDs usually low numbers, but safe to keep all
+    print(f"Found {len(user_ids)} active users.")
 
-        # Extract User ID from URL to prevent duplicates
-        profile_url = user['href']
-        user_id = profile_url.split('id=')[1].split('&')[0]
+    sent_history = get_sent_history()
+    emails_sent_count = 0
 
-        if user_id in sent_users:
-            print(f"Skipping {name} (Already sent).")
-            continue
+    for user_id in user_ids:
+        if emails_sent_count >= MAX_EMAILS_PER_RUN:
+            print(f"SAFETY LIMIT REACHED: {MAX_EMAILS_PER_RUN} emails sent. Stopping.")
+            break
 
-        email, city = get_profile_info(profile_url)
+        # Get User Profile
+        profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1" # course=1 usually works for general view
+        profile_page = session.get(profile_url).text
+
+        # Extract Email
+        email_match = re.search(r'mailto:([\w\.-]+@[\w\.-]+)', profile_page)
+        # Extract Name (Title of page usually "Name - User profile")
+        name_match = re.search(r'<title>(.*?)[:|-]', profile_page)
+        # Extract City
+        city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
+
+        if email_match:
+            email = email_match.group(1)
+            full_name = name_match.group(1).strip() if name_match else "Student"
+            city = city_match.group(1).strip() if city_match else "Ukraine"
+
+            if email in sent_history:
+                print(f"Skipping {full_name} (Already sent).")
+                continue
+
+            print(f"Sending to {full_name} ({email})...")
+            
+            if send_email(email, full_name, city):
+                print(f"SUCCESS: Email sent to {email}")
+                save_to_history(email)
+                emails_sent_count += 1
+                # Sleep to be polite to SMTP server
+                time.sleep(5) 
+            else:
+                print(f"FAILED: Could not send to {email}")
         
-        if email and email != "Email not found":
-            success = send_email(email, name, city)
-            if success:
-                append_to_history(user_id)
-                sent_users.add(user_id)
-                # Wait 10 seconds between emails to allow Gmail to breathe
-                time.sleep(10) 
-        else:
-            print(f"Skipping {name} (No email found).")
+    print("Job Done.")
 
 if __name__ == "__main__":
     main()
