@@ -10,14 +10,20 @@ from email.mime.multipart import MIMEMultipart
 MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
 MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" 
 HISTORY_FILE = "history.txt"
-MAX_EMAILS_PER_RUN = 20
+MAX_EMAILS_PER_RUN = 20 
 
-# --- SECRETS ---
+# --- SECRETS & CREDENTIALS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
-SENDER_EMAIL = os.environ.get("GMAIL_USER") 
-SENDER_PASSWORD = os.environ.get("GMAIL_APP_PASS") 
 TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
+
+# BREVO CONFIGURATION
+# This is the ID used to login to the server (e.g. 9c800...@smtp-brevo.com)
+SMTP_LOGIN_USER = os.environ.get("GMAIL_USER") 
+# This is the API Key/Password
+SMTP_LOGIN_PASS = os.environ.get("GMAIL_APP_PASS") 
+# This is the address people will actually see (MUST be verified in Brevo)
+VISIBLE_SENDER_EMAIL = "kathryncoleman77@gmail.com" 
 
 def get_sent_history():
     if not os.path.exists(HISTORY_FILE):
@@ -43,7 +49,7 @@ def send_email(to_email, user_name, city):
 
 Доступні два формати:
 	•	PDF-файл з усіма запитаннями та відповідями — 299 грн
-	•	QUIZ-формат, у якому вся база поділена на блоки по 50 питань. Ви можете проходити кожен блок необмежену кількість разів, поки не вивчите всі варіанти напам'ять — 399 грн
+	•	QUIZ-формат, у якому вся база поділена на блоки по 50 питань. Ви можете проходити кожен блок необмежену кількість разів, поки не вивчите всі варіанти напам’ять — 399 грн
 
 Оплата здійснюється через картку Monobank, і після оплати ви одразу отримуєте найновішу версію.
 
@@ -59,13 +65,13 @@ def send_email(to_email, user_name, city):
 
 ENGLISH VERSION
 
-Subject: Updated "Center of Testing" Question Database – Now in PDF & Google Form
+Subject: Updated “Center of Testing” Question Database – Now in PDF & Google Form
 
 Hello {user_name} from {city},
 
-We received your email from publicly available "Center of Testing" data — this information is open and accessible to anyone.
+We received your email from publicly available “Center of Testing” data — this information is open and accessible to anyone.
 
-We offer the complete and fully updated database of all "Center of Testing" questions with correct answers. Unlike the official 150-question tests that constantly rotate, disappear, and never show you the full bank, we provide the entire database in one place.
+We offer the complete and fully updated database of all “Center of Testing” questions with correct answers. Unlike the official 150-question tests that constantly rotate, disappear, and never show you the full bank, we provide the entire database in one place.
 
 You can choose between two formats:
 	•	PDF file with all questions and answers — 299 UAH
@@ -81,18 +87,20 @@ Support Team
 """
 
     msg = MIMEMultipart()
-    msg['From'] = SENDER_EMAIL
+    msg['From'] = VISIBLE_SENDER_EMAIL  # Send as kathryncoleman77...
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
-    # Use SMTP_SSL with port 465 instead of STARTTLS with port 587
-    smtp_server = "smtp.office365.com"
-    smtp_port = 465
+    # BREVO SMTP SETTINGS
+    smtp_server = "smtp-relay.brevo.com"
+    smtp_port = 587
 
     try:
-        server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=10)
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls() # Required for Brevo
+        # Login using the Brevo ID, not the email address
+        server.login(SMTP_LOGIN_USER, SMTP_LOGIN_PASS) 
         server.send_message(msg)
         server.quit()
         return True
@@ -127,9 +135,8 @@ def main():
     
     print("Login successful.")
 
-    # 2. GET USERS (Dashboard)
+    # 2. GET USERS
     response = session.get(MOODLE_ONLINE_USERS_URL)
-    
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
     print(f"Found {len(user_ids)} active users.")
 
@@ -145,21 +152,25 @@ def main():
         profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
         profile_page = session.get(profile_url).text
 
-        # --- EXTRACTION FROM USER DETAILS CARD ---
-        
-        # 1. Email: Extract from "Email address" section - just grab the visible text
+        # Robust Data Extraction
+        # 1. Email
         email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="[^"]*">([^<]+)</a></dd>', profile_page)
-        
-        # 2. Name: Look for the h1 header
+        # 2. Name
         name_match = re.search(r'<h1 class="h2">(.*?)</h1>', profile_page)
-        
-        # 3. City: Extract from "City/town" section
+        # 3. City
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
-            email = email_match.group(1).strip()
+            # Cleanup email string
+            from urllib.parse import unquote
+            email = unquote(email_match.group(1).strip())
+            
             full_name = name_match.group(1).strip() if name_match else "Student"
             city = city_match.group(1).strip() if city_match else "Ukraine"
+
+            # Filter junk/system emails
+            if "javascript" in email or "testcentr" in email or "mathjax" in email:
+                continue
 
             if email in sent_history:
                 print(f"Skipping {full_name} (Already sent).")
@@ -171,9 +182,12 @@ def main():
                 print(f"SUCCESS: Email sent to {email}")
                 save_to_history(email)
                 emails_sent_count += 1
-                time.sleep(5) 
+                time.sleep(2) # Fast but polite
             else:
                 print(f"FAILED: Could not send to {email}")
+        else:
+            # No email found (hidden by user)
+            pass
         
     print("Job Done.")
 
