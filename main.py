@@ -3,6 +3,8 @@ import requests
 import smtplib
 import time
 import re
+import html
+from urllib.parse import unquote
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -17,13 +19,9 @@ MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
 TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
-# --- BREVO EMAIL SETTINGS ---
-# 1. The Login ID (e.g. 9c800...@smtp-brevo.com) - Stored in GMAIL_USER secret
+# --- BREVO SMTP SETTINGS ---
 SMTP_LOGIN = os.environ.get("GMAIL_USER") 
-# 2. The API Key (e.g. xsmtpsib-...) - Stored in GMAIL_APP_PASS secret
 SMTP_PASSWORD = os.environ.get("GMAIL_APP_PASS") 
-# 3. The Verified Sender Email (Must match what you verified in Brevo)
-# Recipients will see this email address.
 VERIFIED_SENDER_EMAIL = "kathryncoleman77@gmail.com" 
 
 def get_sent_history():
@@ -88,20 +86,17 @@ Support Team
 """
 
     msg = MIMEMultipart()
-    msg['From'] = VERIFIED_SENDER_EMAIL # What the user sees
+    msg['From'] = VERIFIED_SENDER_EMAIL
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
-    # BREVO SMTP SETTINGS
     smtp_server = "smtp-relay.brevo.com"
     smtp_port = 587
 
     try:
-        # Use standard SMTP with STARTTLS for Brevo (Not SMTP_SSL)
         server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls() 
-        # Login with the Brevo ID and Key
+        server.starttls()
         server.login(SMTP_LOGIN, SMTP_PASSWORD)
         server.send_message(msg)
         server.quit()
@@ -137,7 +132,7 @@ def main():
     
     print("Login successful.")
 
-    # 2. GET USERS (Dashboard)
+    # 2. GET USERS
     response = session.get(MOODLE_ONLINE_USERS_URL)
     
     # Regex matches: user/view.php?id=12345...
@@ -156,22 +151,30 @@ def main():
         profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
         profile_page = session.get(profile_url).text
 
-        # Robust Data Extraction
-        # 1. Email
+        # --- ROBUST EXTRACTION ---
+        
+        # 1. Email Extraction (With Cleanup)
         email_match = re.search(r'<dt>Email address</dt>\s*<dd><a href="[^"]*">([^<]+)</a></dd>', profile_page)
-        # 2. Name
+        
+        # 2. Name Extraction
         name_match = re.search(r'<h1 class="h2">(.*?)</h1>', profile_page)
-        # 3. City
+        
+        # 3. City Extraction
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
 
         if email_match:
-            from urllib.parse import unquote
-            email = unquote(email_match.group(1).strip())
+            raw_email = email_match.group(1).strip()
+            
+            # --- FIX: Decode HTML Entities (&#114; -> r) ---
+            # 1. Decode URL encoding (%40 -> @)
+            email = unquote(raw_email)
+            # 2. Decode HTML entities (&#114; -> r)
+            email = html.unescape(email)
             
             full_name = name_match.group(1).strip() if name_match else "Student"
             city = city_match.group(1).strip() if city_match else "Ukraine"
 
-            # Filter junk/system emails
+            # Filter junk
             if "javascript" in email or "testcentr" in email or "mathjax" in email:
                 continue
 
@@ -185,11 +188,11 @@ def main():
                 print(f"SUCCESS: Email sent to {email}")
                 save_to_history(email)
                 emails_sent_count += 1
-                time.sleep(2) # Polite delay
+                time.sleep(2) 
             else:
                 print(f"FAILED: Could not send to {email}")
         else:
-            pass
+             pass
         
     print("Job Done.")
 
