@@ -8,9 +8,9 @@ from email.mime.multipart import MIMEMultipart
 
 # --- CONFIGURATION ---
 MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
-MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/blocks/online_users/view.php"
+MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" # Changed to dashboard
 HISTORY_FILE = "history.txt"
-MAX_EMAILS_PER_RUN = 20  # Safety limit to avoid spam blocks
+MAX_EMAILS_PER_RUN = 20
 
 # --- SECRETS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
@@ -86,7 +86,6 @@ Support Team
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
-    # OUTLOOK SETTINGS
     smtp_server = "smtp.office365.com"
     smtp_port = 587
 
@@ -108,15 +107,12 @@ def main():
 
     session = requests.Session()
 
-    # 1. LOGIN (With Token Extraction)
+    # 1. LOGIN
     print("Attempting login...")
-    
-    # A. Get login page to find logintoken
     login_page = session.get(MOODLE_LOGIN_URL)
     token_match = re.search(r'name="logintoken" value="([^"]+)"', login_page.text)
     login_token = token_match.group(1) if token_match else ""
 
-    # B. Post Credentials + Token
     login_payload = {
         "username": MOODLE_USER,
         "password": MOODLE_PASS,
@@ -125,22 +121,17 @@ def main():
     
     response = session.post(MOODLE_LOGIN_URL, data=login_payload)
     
-    # C. Verify Login (Check for logout link which only appears when logged in)
     if "login/logout.php" not in response.text:
         print("Login failed.")
-        print(f"Final URL: {response.url}")
-        # Debug snippet (first 200 chars)
-        print(f"Debug Info: {response.text[:200]}")
         return
     
     print("Login successful.")
 
-    # 2. Get Online Users
+    # 2. GET USERS (Dashboard)
     response = session.get(MOODLE_ONLINE_USERS_URL)
-    if response.status_code != 200:
-        print("Failed to fetch online users page.")
-        return
-
+    
+    # Fix: The regex needs to match the structure in the dashboard HTML
+    # href=".../user/view.php?id=119735&course=1"
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
     print(f"Found {len(user_ids)} active users.")
 
@@ -152,11 +143,9 @@ def main():
             print(f"SAFETY LIMIT REACHED: {MAX_EMAILS_PER_RUN} emails sent. Stopping.")
             break
 
-        # Get User Profile
         profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
         profile_page = session.get(profile_url).text
 
-        # Extract Info
         email_match = re.search(r'mailto:([\w\.-]+@[\w\.-]+)', profile_page)
         name_match = re.search(r'<title>(.*?)[:|-]', profile_page)
         city_match = re.search(r'<dt>City/town</dt>\s*<dd>(.*?)</dd>', profile_page)
