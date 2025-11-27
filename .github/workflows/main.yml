@@ -1,19 +1,17 @@
-name: Moodle Automator
+name: Run Scraper and Email
 
 on:
   schedule:
-    - cron: "*/15 * * * *"  # Harvest contacts every 15 mins
-    - cron: "0 13 * * *"    # Send Batch 1 (Account 2) at 15:00 UA (13:00 UTC)
-    - cron: "0 18 * * *"    # Send Batch 2 (Account 1) at 20:00 UA (18:00 UTC)
+    - cron: '*/15 * * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  run-tasks:
+  run-script:
     runs-on: ubuntu-latest
-
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
@@ -24,35 +22,29 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        run: pip install requests
+        run: |
+          pip install requests
 
-      # 1. Run Harvester (Runs every 15 mins)
-      - name: Harvest Contacts
+      - name: Run Scraper
         env:
           MOODLE_USER: ${{ secrets.MOODLE_USER }}
           MOODLE_PASS: ${{ secrets.MOODLE_PASS }}
-        run: python collect.py
-
-      # 2. Run Sender (Runs at 13:00 and 18:00 UTC)
-      - name: Send Blast
-        # Run if it's 13:00 OR 18:00 OR Manual Trigger
-        if: github.event.schedule == '0 13 * * *' || github.event.schedule == '0 18 * * *' || github.event_name == 'workflow_dispatch'
-        env:
+          
           # Account 1
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }}
+          
           # Account 2
           GMAIL_USER_2: ${{ secrets.GMAIL_USER_2 }}
           GMAIL_APP_PASS_2: ${{ secrets.GMAIL_APP_PASS_2 }}
           
           TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}
-        run: python send_blast.py
+        run: python main.py
 
-      # 3. Commit Changes (Save JSONs)
-      - name: Commit & Push
+      - name: Commit and Push State
+        # Saves history AND the daily counter state
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
-          # We add both files to ensure history is saved
-          git add contacts.json history.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update database and history" && git push)
+          git add history.txt bot_state.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update history and bot state" && git push)
