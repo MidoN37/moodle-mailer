@@ -1,0 +1,50 @@
+name: Moodle Automator
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"  # Harvest every 15 mins
+    - cron: "0 18 * * *"    # Send emails at 18:00 UTC (20:00 UA)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run-tasks:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      # 1. Run Harvester (Always runs)
+      - name: Harvest Contacts
+        env:
+          MOODLE_USER: ${{ secrets.MOODLE_USER }}
+          MOODLE_PASS: ${{ secrets.MOODLE_PASS }}
+        run: python collect.py
+
+      # 2. Run Sender (Only runs at 18:00 UTC)
+      - name: Send Blast
+        if: github.event.schedule == '0 18 * * *' || github.event_name == 'workflow_dispatch'
+        env:
+          GMAIL_USER: ${{ secrets.GMAIL_USER }} # Your Gmail address
+          GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }} # Your Gmail App Password
+          TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}
+        run: python send_blast.py
+
+      # 3. Commit Changes (Save JSONs)
+      - name: Commit & Push
+        run: |
+          git config --global user.name 'GitHub Action'
+          git config --global user.email 'action@github.com'
+          git add contacts.json history.json
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update database" && git push)
