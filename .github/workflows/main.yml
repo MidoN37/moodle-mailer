@@ -38,6 +38,8 @@ jobs:
         env:
           GMAIL_USER: ${{ secrets.GMAIL_USER }} # Your Gmail address
           GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }} # Your Gmail App Password
+          GMAIL_USER_2: ${{ secrets.GMAIL_USER_2 }}
+          GMAIL_APP_PASS_2: ${{ secrets.GMAIL_APP_PASS_2 }}
           TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}
         run: python send_blast.py
 
