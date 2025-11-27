@@ -61,7 +61,7 @@ def save_to_history(email):
 def send_email(sender_user, sender_pass, to_email, user_name, city):
     subject = "Оновлена база питань «Центр тестування» – доступна у PDF та Quiz"
     body = f"""
-Вітаємо, {user_name} із {city}!
+Вітаємо, {user_name}!
 
 Ми підготували повну та актуальну базу всіх запитань із «Центр тестування» разом із правильними відповідями. Це найновіше оновлення, зібране у зручному форматі, щоб допомогти швидко та впевнено підготуватися.
 
@@ -83,7 +83,7 @@ Quiz з інтерактивним тестуванням – 399 грн
 
 ENGLISH VERSION
 
-Hello {user_name} from {city},
+Hello {user_name},
 
 We have prepared the complete and fully updated database of all questions from “Center of Testing,” including the correct answers.
 
