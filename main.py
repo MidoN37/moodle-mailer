@@ -19,6 +19,7 @@ LIMIT_PER_ACCOUNT = 495
 # --- SECRETS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
+TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
 # Account 1
 ACC1_USER = os.environ.get("GMAIL_USER")
@@ -28,11 +29,8 @@ ACC1_PASS = os.environ.get("GMAIL_APP_PASS")
 ACC2_USER = os.environ.get("GMAIL_USER_2")
 ACC2_PASS = os.environ.get("GMAIL_APP_PASS_2")
 
-# ==========================================
-# ANTI-SPAM CONTENT GENERATOR (LINK-FREE)
-# ==========================================
+# --- CONTENT GENERATOR (Link-Free) ---
 def get_random_content(user_name):
-    # --- UKRAINIAN VARIATIONS ---
     ua_greetings = [
         f"Вітаємо, {user_name}!", f"Привіт, {user_name}!", f"Добрий день, {user_name}!", 
         f"Вітаю, {user_name}!"
@@ -46,46 +44,21 @@ def get_random_content(user_name):
         "Є два варіанти:\n1. PDF-файл з усіма питаннями (299 грн)\n2. Інтерактивний Quiz для тренування (399 грн)",
         "Доступні формати:\n- PDF з відповідями (299 грн)\n- Quiz-тренажер (399 грн)"
     ]
-    
-    # NO LINKS HERE - ONLY INSTRUCTIONS
     ua_ctas = [
         "Щоб отримати матеріали, знайдіть нас у Telegram: введіть у пошук @kovalkatia",
         "Для замовлення просто відпишіть на цей лист, або напишіть у Telegram: @kovalkatia",
         "Цікавить? Напишіть нам у Telegram (пошук за ніком): @kovalkatia",
         "Щоб придбати, відкрийте Telegram і знайдіть: @kovalkatia"
     ]
-    
-    ua_signoffs = [
-        "З повагою,\nКоманда підтримки", "Бажаємо успіхів!", 
-        "Гарної підготовки!"
-    ]
+    ua_signoffs = ["З повагою,\nКоманда підтримки", "Бажаємо успіхів!", "Гарної підготовки!"]
 
-    # --- ENGLISH VARIATIONS ---
-    en_greetings = [
-        f"Hello {user_name},", f"Hi {user_name},"
-    ]
-    en_intros = [
-        "We have the complete updated database of 'Center of Testing' questions with correct answers.",
-        "Prepare for KROK faster with our full question bank (PDF & Quiz)."
-    ]
-    en_offers = [
-        "Options available:\n- Full PDF (299 UAH)\n- Interactive Quiz (399 UAH)"
-    ]
-    
-    # NO LINKS HERE
-    en_ctas = [
-        "To get access, open Telegram and search for: @kovalkatia",
-        "Interested? Reply to this email or find us on Telegram: @kovalkatia",
-        "Contact us on Telegram (search username): @kovalkatia"
-    ]
-    
-    en_signoffs = [
-        "Best regards,", "Good luck!"
-    ]
+    en_greetings = [f"Hello {user_name},", f"Hi {user_name},"]
+    en_intros = ["We have the complete updated database of 'Center of Testing' questions with correct answers."]
+    en_offers = ["Options available:\n- Full PDF (299 UAH)\n- Interactive Quiz (399 UAH)"]
+    en_ctas = ["To get access, open Telegram and search for: @kovalkatia", "Interested? Reply to this email or find us on Telegram: @kovalkatia"]
+    en_signoffs = ["Best regards,", "Good luck!"]
 
-    # --- ASSEMBLE BODY ---
     ua_part = f"{random.choice(ua_greetings)}\n\n{random.choice(ua_intros)}\n\n{random.choice(ua_offers)}\n\n{random.choice(ua_ctas)}\n\n{random.choice(ua_signoffs)}"
-    
     en_part = f"{random.choice(en_greetings)}\n\n{random.choice(en_intros)}\n\n{random.choice(en_offers)}\n\n{random.choice(en_ctas)}\n\n{random.choice(en_signoffs)}"
 
     full_body = f"{ua_part}\n\n=====================\n\nENGLISH VERSION\n\n{en_part}"
@@ -93,18 +66,17 @@ def get_random_content(user_name):
     subject_options = [
         "База питань «Центр тестування» (PDF/Quiz)", 
         "Підготовка до КРОК: Всі відповіді",
-        "Матеріали Центр Тестування 2025"
+        "Матеріали Центр Тестування 2025",
+        "KROK Exam Database (Full Access)"
     ]
     
     return random.choice(subject_options), full_body
 
-# ==========================================
-# MAIN LOGIC
-# ==========================================
-
+# --- STATE MANAGEMENT ---
 def load_state():
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    default_state = {"date": today, "account": 1, "count_1": 0, "count_2": 0}
+    # 'last_used': 0 means start with 1. 1 means next is 2. 2 means next is 1.
+    default_state = {"date": today, "count_1": 0, "count_2": 0, "last_used": 2}
     
     if not os.path.exists(STATE_FILE): return default_state
     try:
@@ -124,9 +96,9 @@ def get_sent_history():
 def save_to_history(email):
     with open(HISTORY_FILE, "a") as f: f.write(email + "\n")
 
+# --- EMAIL LOGIC ---
 def send_email(sender_user, sender_pass, to_email, user_name, city):
     subject, body = get_random_content(user_name)
-
     msg = MIMEMultipart()
     msg['From'] = sender_user
     msg['To'] = to_email
@@ -144,28 +116,35 @@ def send_email(sender_user, sender_pass, to_email, user_name, city):
         print(f"   FAILED ({sender_user}): {e}")
         return False
 
-def main():
-    state = load_state()
-    print(f"Stats | Acc 1: {state['count_1']} | Acc 2: {state['count_2']}")
-
-    active_user, active_pass = None, None
-    current_acc_id = 1
-    
-    if state['count_1'] < LIMIT_PER_ACCOUNT:
-        active_user, active_pass = ACC1_USER, ACC1_PASS
-        current_acc_id = 1
-    elif state['count_2'] < LIMIT_PER_ACCOUNT:
-        active_user, active_pass = ACC2_USER, ACC2_PASS
-        current_acc_id = 2
+def get_next_account(state):
+    """Logic to alternate accounts and respect limits"""
+    # If last was 1, try 2. If last was 2, try 1.
+    if state['last_used'] == 1:
+        preferred = 2
     else:
-        print("DAILY LIMIT REACHED.")
-        return
+        preferred = 1
 
-    print(f"Using Account {current_acc_id}: {active_user}")
+    # Check if preferred is full
+    if preferred == 1 and state['count_1'] >= LIMIT_PER_ACCOUNT:
+        preferred = 2 # Fallback to 2
+    if preferred == 2 and state['count_2'] >= LIMIT_PER_ACCOUNT:
+        preferred = 1 # Fallback to 1
 
-    # --- LOGIN ---
+    # Final Check: Are BOTH full?
+    if (preferred == 1 and state['count_1'] >= LIMIT_PER_ACCOUNT) or \
+       (preferred == 2 and state['count_2'] >= LIMIT_PER_ACCOUNT):
+        return None, None, None # STOP
+
+    # Return credentials
+    if preferred == 1:
+        return 1, ACC1_USER, ACC1_PASS
+    else:
+        return 2, ACC2_USER, ACC2_PASS
+
+def main():
+    # --- LOGIN MOODLE ---
     session = requests.Session()
-    print("Logging in...")
+    print("Attempting login...")
     try:
         login_page = session.get(MOODLE_LOGIN_URL)
         token_match = re.search(r'name="logintoken" value="([^"]+)"', login_page.text)
@@ -183,22 +162,26 @@ def main():
         return
 
     # --- GET USERS ---
+    print("Login successful. Fetching users...")
     response = session.get(MOODLE_ONLINE_USERS_URL)
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
     print(f"Found {len(user_ids)} active users.")
 
     sent_history = get_sent_history()
+    state = load_state()
     emails_sent_this_run = 0
 
-    for user_id in user_ids:
-        if current_acc_id == 1 and state['count_1'] >= LIMIT_PER_ACCOUNT:
-            if state['count_2'] < LIMIT_PER_ACCOUNT:
-                active_user, active_pass = ACC2_USER, ACC2_PASS
-                current_acc_id = 2
-            else: break
-        elif current_acc_id == 2 and state['count_2'] >= LIMIT_PER_ACCOUNT:
-             break
+    print(f"Daily Stats: Acc1={state['count_1']} | Acc2={state['count_2']}")
 
+    for user_id in user_ids:
+        # 1. Get Next Sender Account
+        acc_id, active_user, active_pass = get_next_account(state)
+        
+        if not active_user:
+            print("Daily limits reached for BOTH accounts. Stopping.")
+            break
+
+        # 2. Scrape Profile
         try:
             profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
             profile_page = session.get(profile_url).text
@@ -217,19 +200,25 @@ def main():
                 if any(x in email for x in ["javascript", "testcentr", "mathjax"]): continue
                 if email in sent_history: continue
 
-                print(f"Sending to {full_name} ({email})...")
+                print(f"Sending to {full_name} ({email}) via {active_user}...")
                 
                 if send_email(active_user, active_pass, email, full_name, city):
                     print(f" -> SUCCESS")
                     save_to_history(email)
-                    if current_acc_id == 1: state['count_1'] += 1
+                    
+                    # Update State
+                    if acc_id == 1: state['count_1'] += 1
                     else: state['count_2'] += 1
+                    state['last_used'] = acc_id # Flip for next turn
                     save_state(state)
+                    
                     emails_sent_this_run += 1
-                    time.sleep(random.randint(10, 20)) # Higher delay for safety
+                    time.sleep(random.randint(10, 20)) 
                 else:
                     print(f" -> FAILED")
-        except: continue
+        except Exception as e:
+            print(f"Error processing user {user_id}: {e}")
+            continue
     
     print(f"Job Done. Sent {emails_sent_this_run} emails.")
 
