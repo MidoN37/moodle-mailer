@@ -93,8 +93,7 @@ def get_random_content(user_name):
     subject_options = [
         "База питань «Центр тестування» (PDF/Quiz)", 
         "Підготовка до КРОК: Всі відповіді",
-        "Матеріали Центр Тестування 2025",
-        "KROK Exam Database (Full Access)"
+        "Матеріали Центр Тестування 2025"
     ]
     
     return random.choice(subject_options), full_body
