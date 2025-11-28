@@ -16,10 +16,9 @@ HISTORY_FILE = "history.txt"
 STATE_FILE = "bot_state.json" 
 LIMIT_PER_ACCOUNT = 495
 
-# --- SECRETS (GitHub Actions Secrets) ---
+# --- SECRETS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
-TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
 # Account 1
 ACC1_USER = os.environ.get("GMAIL_USER")
@@ -30,73 +29,72 @@ ACC2_USER = os.environ.get("GMAIL_USER_2")
 ACC2_PASS = os.environ.get("GMAIL_APP_PASS_2")
 
 # ==========================================
-# ANTI-SPAM CONTENT GENERATOR
+# ANTI-SPAM CONTENT GENERATOR (LINK-FREE)
 # ==========================================
 def get_random_content(user_name):
     # --- UKRAINIAN VARIATIONS ---
     ua_greetings = [
         f"Вітаємо, {user_name}!", f"Привіт, {user_name}!", f"Добрий день, {user_name}!", 
-        f"Вітаю, {user_name}!", f"Доброго часу доби, {user_name}!"
+        f"Вітаю, {user_name}!"
     ]
     ua_intros = [
-        "Ми підготували повну та актуальну базу всіх запитань із «Центр тестування» разом із правильними відповідями.",
-        "У нас з'явилася найновіша база питань та відповідей для «Центру тестування».",
-        "Пропонуємо вам оновлений список питань для підготовки до іспитів у «Центрі тестування» (з відповідями).",
-        "Якщо ви готуєтесь до тестів, наша нова база запитань із правильними відповідями стане вам у нагоді."
+        "Ми підготували повну базу всіх запитань «Центр тестування» (КРОК) разом із правильними відповідями.",
+        "Маємо оновлену базу тестів та відповідей для підготовки до іспитів «Центру тестування».",
+        "Якщо ви готуєтесь до КРОК, наша повна база питань із відповідями зекономить ваш час."
     ]
     ua_offers = [
-        "Ми пропонуємо два зручні варіанти:\nPDF-файл – 299 грн\nQuiz-тест – 399 грн",
-        "Доступні формати:\n1. PDF з усіма відповідями (299 грн)\n2. Інтерактивний Quiz (399 грн)",
-        "Ви можете обрати:\n- Повний PDF-файл за 299 грн\n- Інтерактивний тренажер (Quiz) за 399 грн"
+        "Є два варіанти:\n1. PDF-файл з усіма питаннями (299 грн)\n2. Інтерактивний Quiz для тренування (399 грн)",
+        "Доступні формати:\n- PDF з відповідями (299 грн)\n- Quiz-тренажер (399 грн)"
     ]
+    
+    # NO LINKS HERE - ONLY INSTRUCTIONS
     ua_ctas = [
-        "Перед оплатою пишіть нам у Telegram, все розкажемо",
-        "Усі деталі та оплата через Telegram",
-        "Зв'яжіться з нами в Telegram для отримання матеріалів",
-        "Пишіть в особисті для замовлення"
+        "Щоб отримати матеріали, знайдіть нас у Telegram: введіть у пошук @kovalkatia",
+        "Для замовлення просто відпишіть на цей лист, або напишіть у Telegram: @kovalkatia",
+        "Цікавить? Напишіть нам у Telegram (пошук за ніком): @kovalkatia",
+        "Щоб придбати, відкрийте Telegram і знайдіть: @kovalkatia"
     ]
+    
     ua_signoffs = [
-        "З повагою,\nКоманда підтримки", "Бажаємо успіхів у підготовці!", 
-        "Гарного дня,\nКоманда підтримки", "Успіхів на іспитах!"
+        "З повагою,\nКоманда підтримки", "Бажаємо успіхів!", 
+        "Гарної підготовки!"
     ]
 
     # --- ENGLISH VARIATIONS ---
     en_greetings = [
-        f"Hello {user_name},", f"Hi {user_name},", f"Greetings {user_name},"
+        f"Hello {user_name},", f"Hi {user_name},"
     ]
     en_intros = [
-        "We have prepared the complete and fully updated database of all questions from “Center of Testing,” including correct answers.",
-        "We are offering the newest database of questions and answers for the “Center of Testing” exams.",
-        "Get ready for your exams with our updated question bank containing all correct answers."
+        "We have the complete updated database of 'Center of Testing' questions with correct answers.",
+        "Prepare for KROK faster with our full question bank (PDF & Quiz)."
     ]
     en_offers = [
-        "We offer two options:\nPDF file – 299 UAH\nInteractive Quiz – 399 UAH",
-        "Choose your format:\n1. PDF with answers (299 UAH)\n2. Interactive Quiz (399 UAH)"
+        "Options available:\n- Full PDF (299 UAH)\n- Interactive Quiz (399 UAH)"
     ]
+    
+    # NO LINKS HERE
     en_ctas = [
-        "Before paying, you can contact us on Telegram",
-        "Contact us on Telegram for details and payment",
-        "Message us on Telegram to get started"
+        "To get access, open Telegram and search for: @kovalkatia",
+        "Interested? Reply to this email or find us on Telegram: @kovalkatia",
+        "Contact us on Telegram (search username): @kovalkatia"
     ]
+    
     en_signoffs = [
-        "Best regards,\nSupport Team", "Good luck with your exams!", 
-        "Sincerely,\nSupport Team"
+        "Best regards,", "Good luck!"
     ]
 
     # --- ASSEMBLE BODY ---
-    # Note: We append TELEGRAM_LINK at the end of CTAs or Signoffs to ensure it appears
+    ua_part = f"{random.choice(ua_greetings)}\n\n{random.choice(ua_intros)}\n\n{random.choice(ua_offers)}\n\n{random.choice(ua_ctas)}\n\n{random.choice(ua_signoffs)}"
     
-    ua_part = f"{random.choice(ua_greetings)}\n\n{random.choice(ua_intros)}\n\n{random.choice(ua_offers)}\n\nОплата приймається через картку Monobank.\n\n{random.choice(ua_ctas)}: {TELEGRAM_LINK}\n\n{random.choice(ua_signoffs)}"
-    
-    en_part = f"{random.choice(en_greetings)}\n\n{random.choice(en_intros)}\n\n{random.choice(en_offers)}\n\nWe accept payment via Monobank card.\n\n{random.choice(en_ctas)}: {TELEGRAM_LINK}\n\n{random.choice(en_signoffs)}"
+    en_part = f"{random.choice(en_greetings)}\n\n{random.choice(en_intros)}\n\n{random.choice(en_offers)}\n\n{random.choice(en_ctas)}\n\n{random.choice(en_signoffs)}"
 
     full_body = f"{ua_part}\n\n=====================\n\nENGLISH VERSION\n\n{en_part}"
     
     subject_options = [
-        "Оновлена база питань «Центр тестування»", 
-        "Матеріали для підготовки: PDF та Quiz",
-        "Центр тестування: Правильні відповіді",
-        "Важливе оновлення для підготовки (Крок/Іспити)"
+        "База питань «Центр тестування» (PDF/Quiz)", 
+        "Підготовка до КРОК: Всі відповіді",
+        "Матеріали Центр Тестування 2025",
+        "KROK Exam Database (Full Access)"
     ]
     
     return random.choice(subject_options), full_body
@@ -109,33 +107,25 @@ def load_state():
     today = datetime.datetime.now().strftime("%Y-%m-%d")
     default_state = {"date": today, "account": 1, "count_1": 0, "count_2": 0}
     
-    if not os.path.exists(STATE_FILE):
-        return default_state
-    
+    if not os.path.exists(STATE_FILE): return default_state
     try:
         with open(STATE_FILE, 'r') as f:
             state = json.load(f)
-            if state.get("date") != today:
-                return default_state
+            if state.get("date") != today: return default_state
             return state
-    except:
-        return default_state
+    except: return default_state
 
 def save_state(state):
-    with open(STATE_FILE, 'w') as f:
-        json.dump(state, f)
+    with open(STATE_FILE, 'w') as f: json.dump(state, f)
 
 def get_sent_history():
     if not os.path.exists(HISTORY_FILE): return set()
-    with open(HISTORY_FILE, "r") as f:
-        return set(line.strip() for line in f)
+    with open(HISTORY_FILE, "r") as f: return set(line.strip() for line in f)
 
 def save_to_history(email):
-    with open(HISTORY_FILE, "a") as f:
-        f.write(email + "\n")
+    with open(HISTORY_FILE, "a") as f: f.write(email + "\n")
 
 def send_email(sender_user, sender_pass, to_email, user_name, city):
-    # GET RANDOMIZED CONTENT
     subject, body = get_random_content(user_name)
 
     msg = MIMEMultipart()
@@ -157,10 +147,9 @@ def send_email(sender_user, sender_pass, to_email, user_name, city):
 
 def main():
     state = load_state()
-    print(f"Daily Stats | Acc 1: {state['count_1']} | Acc 2: {state['count_2']}")
+    print(f"Stats | Acc 1: {state['count_1']} | Acc 2: {state['count_2']}")
 
-    active_user = None
-    active_pass = None
+    active_user, active_pass = None, None
     current_acc_id = 1
     
     if state['count_1'] < LIMIT_PER_ACCOUNT:
@@ -170,14 +159,14 @@ def main():
         active_user, active_pass = ACC2_USER, ACC2_PASS
         current_acc_id = 2
     else:
-        print("DAILY LIMIT REACHED FOR BOTH ACCOUNTS. Stopping.")
+        print("DAILY LIMIT REACHED.")
         return
 
     print(f"Using Account {current_acc_id}: {active_user}")
 
-    # --- LOGIN MOODLE ---
+    # --- LOGIN ---
     session = requests.Session()
-    print("Attempting login...")
+    print("Logging in...")
     try:
         login_page = session.get(MOODLE_LOGIN_URL)
         token_match = re.search(r'name="logintoken" value="([^"]+)"', login_page.text)
@@ -191,32 +180,26 @@ def main():
             print("Login failed.")
             return
     except Exception as e:
-        print(f"Connection Error: {e}")
+        print(f"Connection error: {e}")
         return
 
     # --- GET USERS ---
     response = session.get(MOODLE_ONLINE_USERS_URL)
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
-    print(f"Found {len(user_ids)} active users on Moodle.")
+    print(f"Found {len(user_ids)} active users.")
 
     sent_history = get_sent_history()
     emails_sent_this_run = 0
 
     for user_id in user_ids:
-        # CHECK LIMITS
         if current_acc_id == 1 and state['count_1'] >= LIMIT_PER_ACCOUNT:
-            print("Account 1 Full. Switching to Account 2...")
             if state['count_2'] < LIMIT_PER_ACCOUNT:
                 active_user, active_pass = ACC2_USER, ACC2_PASS
                 current_acc_id = 2
-            else:
-                print("Both accounts full. Stopping.")
-                break
+            else: break
         elif current_acc_id == 2 and state['count_2'] >= LIMIT_PER_ACCOUNT:
-             print("Account 2 Full. Stopping.")
              break
 
-        # SCRAPE PROFILE
         try:
             profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
             profile_page = session.get(profile_url).text
@@ -232,31 +215,22 @@ def main():
                 full_name = name_match.group(1).strip() if name_match else "Student"
                 city = city_match.group(1).strip() if city_match else "Ukraine"
 
-                if "javascript" in email or "testcentr" in email or "mathjax" in email: continue
-                if email in sent_history: 
-                    # Silent skip
-                    continue
+                if any(x in email for x in ["javascript", "testcentr", "mathjax"]): continue
+                if email in sent_history: continue
 
                 print(f"Sending to {full_name} ({email})...")
                 
                 if send_email(active_user, active_pass, email, full_name, city):
                     print(f" -> SUCCESS")
                     save_to_history(email)
-                    
                     if current_acc_id == 1: state['count_1'] += 1
                     else: state['count_2'] += 1
-                    save_state(state) 
-                    
+                    save_state(state)
                     emails_sent_this_run += 1
-                    
-                    # Random delay between 10 and 20 seconds
-                    delay = random.randint(10, 20)
-                    time.sleep(delay)
+                    time.sleep(random.randint(10, 20)) # Higher delay for safety
                 else:
                     print(f" -> FAILED")
-        except Exception as e:
-            print(f"Error scraping user {user_id}: {e}")
-            continue
+        except: continue
     
     print(f"Job Done. Sent {emails_sent_this_run} emails.")
 
