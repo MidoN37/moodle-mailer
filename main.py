@@ -15,14 +15,13 @@ MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0"
 HISTORY_FILE = "history.txt"
 STATE_FILE = "bot_state.json" 
 
-# --- SECRETS & ACCOUNTS SETUP ---
+# --- SECRETS ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
 TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
-# We assume the visible "From" address is your main Gmail for all accounts
-# Make sure this email is verified as a Sender in your Brevo accounts!
-SENDER_FROM_EMAIL = os.environ.get("GMAIL_USER") 
+# THE NEW DOMAIN EMAIL (For Brevo Accounts)
+DOMAIN_EMAIL = "support@krok-help.xyz"
 
 ACCOUNTS = {
     1: {
@@ -32,25 +31,28 @@ ACCOUNTS = {
         "pass": os.environ.get("GMAIL_APP_PASS"),
         "host": "smtp.gmail.com",
         "port": 587,
-        "limit": 495
+        "limit": 495,
+        "from_email": os.environ.get("GMAIL_USER") # Gmail sends as itself
     },
     2: {
         "name": "Brevo Account 1",
         "type": "brevo",
-        "user": os.environ.get("BREVO_USER_1"), # 9dd3f5001@smtp-brevo.com
+        "user": os.environ.get("BREVO_USER_1"),
         "pass": os.environ.get("BREVO_PASS_1"),
         "host": "smtp-relay.brevo.com",
         "port": 587,
-        "limit": 295 # Brevo Free Limit is 300
+        "limit": 295, # Safety buffer below 300
+        "from_email": DOMAIN_EMAIL # Sends as support@krok-help.xyz
     },
     3: {
         "name": "Brevo Account 2",
         "type": "brevo",
-        "user": os.environ.get("BREVO_USER_2"), # 9c8009001@smtp-brevo.com
+        "user": os.environ.get("BREVO_USER_2"),
         "pass": os.environ.get("BREVO_PASS_2"),
         "host": "smtp-relay.brevo.com",
         "port": 587,
-        "limit": 295 # Brevo Free Limit is 300
+        "limit": 295, # Safety buffer below 300
+        "from_email": DOMAIN_EMAIL # Sends as support@krok-help.xyz
     }
 }
 
@@ -99,7 +101,6 @@ def get_random_content(user_name):
 # --- STATE MANAGEMENT ---
 def load_state():
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    # Default state: counts for 3 accounts, last_used 3 (so we start with 1)
     default_state = {"date": today, "count_1": 0, "count_2": 0, "count_3": 0, "last_used": 3}
     
     if not os.path.exists(STATE_FILE): return default_state
@@ -107,7 +108,6 @@ def load_state():
         with open(STATE_FILE, 'r') as f:
             state = json.load(f)
             if state.get("date") != today: return default_state
-            # Ensure new keys exist if migrating from old state file
             if "count_3" not in state: state["count_3"] = 0
             return state
     except: return default_state
@@ -127,8 +127,8 @@ def send_email(account_config, to_email, user_name, city):
     subject, body = get_random_content(user_name)
     msg = MIMEMultipart()
     
-    # The visible 'From' must be a valid email (not the Brevo ID)
-    msg['From'] = SENDER_FROM_EMAIL 
+    # DYNAMIC FROM ADDRESS
+    msg['From'] = account_config['from_email']
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
@@ -145,29 +145,21 @@ def send_email(account_config, to_email, user_name, city):
         return False
 
 def get_next_account(state):
-    """
-    Rotates 1 -> 2 -> 3 -> 1.
-    Checks limits. Returns (account_id, account_config).
-    """
     last = state.get('last_used', 3)
-    
-    # Define rotation preference based on last used
+    # Rotation Logic: 1 -> 2 -> 3 -> 1
     if last == 1: order = [2, 3, 1]
     elif last == 2: order = [3, 1, 2]
-    else: order = [1, 2, 3] # Default or last was 3
+    else: order = [1, 2, 3]
 
     for acc_id in order:
         current_count = state.get(f"count_{acc_id}", 0)
         limit = ACCOUNTS[acc_id]['limit']
-        
-        # Check if credentials exist and limit not reached
         if ACCOUNTS[acc_id]['user'] and current_count < limit:
             return acc_id, ACCOUNTS[acc_id]
             
-    return None, None # No accounts available
+    return None, None 
 
 def main():
-    # --- LOGIN MOODLE ---
     session = requests.Session()
     print("Attempting login...")
     try:
@@ -186,7 +178,6 @@ def main():
         print(f"Connection error: {e}")
         return
 
-    # --- GET USERS ---
     print("Login successful. Fetching users...")
     response = session.get(MOODLE_ONLINE_USERS_URL)
     user_ids = set(re.findall(r'user/view\.php\?id=(\d+)', response.text))
@@ -199,14 +190,12 @@ def main():
     print(f"Daily Stats: Gmail={state['count_1']} | Brevo1={state['count_2']} | Brevo2={state['count_3']}")
 
     for user_id in user_ids:
-        # 1. Get Next Sender Account
         acc_id, acc_config = get_next_account(state)
         
         if not acc_config:
             print("Daily limits reached for ALL accounts. Stopping.")
             break
 
-        # 2. Scrape Profile
         try:
             profile_url = f"https://test.testcentr.org.ua/user/view.php?id={user_id}&course=1"
             profile_page = session.get(profile_url).text
@@ -230,12 +219,9 @@ def main():
                 if send_email(acc_config, email, full_name, city):
                     print(f" -> SUCCESS")
                     save_to_history(email)
-                    
-                    # Update State
                     state[f'count_{acc_id}'] += 1
                     state['last_used'] = acc_id 
                     save_state(state)
-                    
                     emails_sent_this_run += 1
                     time.sleep(random.randint(10, 20)) 
                 else:
