@@ -68,8 +68,8 @@ def get_random_content(user_name):
         "Якщо ви готуєтесь до КРОК, наша повна база питань із відповідями зекономить ваш час."
     ]
     ua_offers = [
-        "Є два варіанти:\n1. PDF-файл з усіма питаннями (299 грн)\n2. Інтерактивний Quiz для тренування (399 грн)",
-        "Доступні формати:\n- PDF з відповідями (299 грн)\n- Quiz-тренажер (399 грн)"
+        "Є два варіанти:\n1. PDF-файл з усіма питаннями (399 грн)\n2. Інтерактивний Quiz для тренування (499 грн)",
+        "Доступні формати:\n- PDF з відповідями (399 грн)\n- Quiz-тренажер (499 грн)"
     ]
     ua_ctas = [
         "Щоб отримати матеріали, знайдіть нас у Telegram: введіть у пошук @kovalkatia",
@@ -81,7 +81,7 @@ def get_random_content(user_name):
 
     en_greetings = [f"Hello {user_name},", f"Hi {user_name},"]
     en_intros = ["We have the complete updated database of 'Center of Testing' questions with correct answers."]
-    en_offers = ["Options available:\n- Full PDF (299 UAH)\n- Interactive Quiz (399 UAH)"]
+    en_offers = ["Options available:\n- Full PDF (399 UAH)\n- Interactive Quiz (499 UAH)"]
     en_ctas = ["To get access, open Telegram and search for: @kovalkatia", "Interested? Reply to this email or find us on Telegram: @kovalkatia"]
     en_signoffs = ["Best regards,", "Good luck!"]
 
