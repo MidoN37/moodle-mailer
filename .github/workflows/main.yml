@@ -33,17 +33,15 @@ jobs:
           # Telegram
           TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}
 
-          # Account 1: Gmail (Also used as the visible "From" address)
+          # Account 1: Gmail
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }}
           
           # Account 2: Brevo 1
-          # Login: 9dd3f5001@smtp-brevo.com
           BREVO_USER_1: ${{ secrets.BREVO_USER_1 }}
           BREVO_PASS_1: ${{ secrets.BREVO_PASS_1 }}
           
           # Account 3: Brevo 2
-          # Login: 9c8009001@smtp-brevo.com
           BREVO_USER_2: ${{ secrets.BREVO_USER_2 }}
           BREVO_PASS_2: ${{ secrets.BREVO_PASS_2 }}
           
@@ -53,5 +51,20 @@ jobs:
         run: |
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
+          
+          # Add the files
           git add history.txt bot_state.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update state" && git push)
+          
+          # Check if there are changes (if not, skip the rest)
+          if ! git diff --staged --quiet; then
+            echo "Changes detected. Committing..."
+            git commit -m "Update state [skip ci]"
+            
+            # PULL latest changes first to fix the "rejected" error
+            git pull --rebase origin main
+            
+            # Now Push
+            git push origin HEAD:main
+          else
+            echo "No changes to commit."
+          fi
