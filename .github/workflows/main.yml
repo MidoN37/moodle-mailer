@@ -2,7 +2,7 @@ name: Moodle Automator
 
 on:
   schedule:
-    - cron: "*/30 * * * *"  # Run every 15 mins
+    - cron: "*/30 * * * *"  # Run every 30 mins
   workflow_dispatch:
 
 permissions:
@@ -30,15 +30,23 @@ jobs:
           MOODLE_USER: ${{ secrets.MOODLE_USER }}
           MOODLE_PASS: ${{ secrets.MOODLE_PASS }}
           
-          # Account 1
+          # Telegram
+          TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}
+
+          # Account 1: Gmail (Also used as the visible "From" address)
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }}
           
-          # Account 2
-          GMAIL_USER_2: ${{ secrets.GMAIL_USER_2 }}
-          GMAIL_APP_PASS_2: ${{ secrets.GMAIL_APP_PASS_2 }}
+          # Account 2: Brevo 1
+          # Login: 9dd3f5001@smtp-brevo.com
+          BREVO_USER_1: ${{ secrets.BREVO_USER_1 }}
+          BREVO_PASS_1: ${{ secrets.BREVO_PASS_1 }}
           
-          TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}
+          # Account 3: Brevo 2
+          # Login: 9c8009001@smtp-brevo.com
+          BREVO_USER_2: ${{ secrets.BREVO_USER_2 }}
+          BREVO_PASS_2: ${{ secrets.BREVO_PASS_2 }}
+          
         run: python main.py
 
       - name: Commit State & History
