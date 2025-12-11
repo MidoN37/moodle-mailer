@@ -60,7 +60,7 @@ jobs:
             echo "Changes detected. Committing..."
             git commit -m "Update state [skip ci]"
             
-            # PULL latest changes first to fix the "rejected" error
+            # PULL latest changes first to avoid the "rejected" error
             git pull --rebase origin main
             
             # Now Push
