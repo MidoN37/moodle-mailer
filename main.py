@@ -14,22 +14,47 @@ MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
 MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" 
 HISTORY_FILE = "history.txt"
 STATE_FILE = "bot_state.json" 
-LIMIT_PER_ACCOUNT = 495
 
-# --- SECRETS ---
+# --- SECRETS & ACCOUNTS SETUP ---
 MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
 TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
-# Account 1
-ACC1_USER = os.environ.get("GMAIL_USER")
-ACC1_PASS = os.environ.get("GMAIL_APP_PASS")
+# We assume the visible "From" address is your main Gmail for all accounts
+# Make sure this email is verified as a Sender in your Brevo accounts!
+SENDER_FROM_EMAIL = os.environ.get("GMAIL_USER") 
 
-# Account 2
-ACC2_USER = os.environ.get("GMAIL_USER_2")
-ACC2_PASS = os.environ.get("GMAIL_APP_PASS_2")
+ACCOUNTS = {
+    1: {
+        "name": "Gmail Main",
+        "type": "gmail",
+        "user": os.environ.get("GMAIL_USER"),
+        "pass": os.environ.get("GMAIL_APP_PASS"),
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "limit": 495
+    },
+    2: {
+        "name": "Brevo Account 1",
+        "type": "brevo",
+        "user": os.environ.get("BREVO_USER_1"), # 9dd3f5001@smtp-brevo.com
+        "pass": os.environ.get("BREVO_PASS_1"),
+        "host": "smtp-relay.brevo.com",
+        "port": 587,
+        "limit": 295 # Brevo Free Limit is 300
+    },
+    3: {
+        "name": "Brevo Account 2",
+        "type": "brevo",
+        "user": os.environ.get("BREVO_USER_2"), # 9c8009001@smtp-brevo.com
+        "pass": os.environ.get("BREVO_PASS_2"),
+        "host": "smtp-relay.brevo.com",
+        "port": 587,
+        "limit": 295 # Brevo Free Limit is 300
+    }
+}
 
-# --- CONTENT GENERATOR (Link-Free) ---
+# --- CONTENT GENERATOR ---
 def get_random_content(user_name):
     ua_greetings = [
         f"Вітаємо, {user_name}!", f"Привіт, {user_name}!", f"Добрий день, {user_name}!", 
@@ -74,14 +99,16 @@ def get_random_content(user_name):
 # --- STATE MANAGEMENT ---
 def load_state():
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    # 'last_used': 0 means start with 1. 1 means next is 2. 2 means next is 1.
-    default_state = {"date": today, "count_1": 0, "count_2": 0, "last_used": 2}
+    # Default state: counts for 3 accounts, last_used 3 (so we start with 1)
+    default_state = {"date": today, "count_1": 0, "count_2": 0, "count_3": 0, "last_used": 3}
     
     if not os.path.exists(STATE_FILE): return default_state
     try:
         with open(STATE_FILE, 'r') as f:
             state = json.load(f)
             if state.get("date") != today: return default_state
+            # Ensure new keys exist if migrating from old state file
+            if "count_3" not in state: state["count_3"] = 0
             return state
     except: return default_state
 
@@ -96,49 +123,48 @@ def save_to_history(email):
     with open(HISTORY_FILE, "a") as f: f.write(email + "\n")
 
 # --- EMAIL LOGIC ---
-def send_email(sender_user, sender_pass, to_email, user_name, city):
+def send_email(account_config, to_email, user_name, city):
     subject, body = get_random_content(user_name)
     msg = MIMEMultipart()
-    msg['From'] = sender_user
+    
+    # The visible 'From' must be a valid email (not the Brevo ID)
+    msg['From'] = SENDER_FROM_EMAIL 
     msg['To'] = to_email
     msg['Subject'] = subject
     msg.attach(MIMEText(body, 'plain'))
 
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP(account_config['host'], account_config['port'])
         server.starttls()
-        server.login(sender_user, sender_pass)
+        server.login(account_config['user'], account_config['pass'])
         server.send_message(msg)
         server.quit()
         return True
     except Exception as e:
-        print(f"   FAILED ({sender_user}): {e}")
+        print(f"   FAILED ({account_config['name']}): {e}")
         return False
 
 def get_next_account(state):
-    """Logic to alternate accounts and respect limits"""
-    # If last was 1, try 2. If last was 2, try 1.
-    if state['last_used'] == 1:
-        preferred = 2
-    else:
-        preferred = 1
+    """
+    Rotates 1 -> 2 -> 3 -> 1.
+    Checks limits. Returns (account_id, account_config).
+    """
+    last = state.get('last_used', 3)
+    
+    # Define rotation preference based on last used
+    if last == 1: order = [2, 3, 1]
+    elif last == 2: order = [3, 1, 2]
+    else: order = [1, 2, 3] # Default or last was 3
 
-    # Check if preferred is full
-    if preferred == 1 and state['count_1'] >= LIMIT_PER_ACCOUNT:
-        preferred = 2 # Fallback to 2
-    if preferred == 2 and state['count_2'] >= LIMIT_PER_ACCOUNT:
-        preferred = 1 # Fallback to 1
-
-    # Final Check: Are BOTH full?
-    if (preferred == 1 and state['count_1'] >= LIMIT_PER_ACCOUNT) or \
-       (preferred == 2 and state['count_2'] >= LIMIT_PER_ACCOUNT):
-        return None, None, None # STOP
-
-    # Return credentials
-    if preferred == 1:
-        return 1, ACC1_USER, ACC1_PASS
-    else:
-        return 2, ACC2_USER, ACC2_PASS
+    for acc_id in order:
+        current_count = state.get(f"count_{acc_id}", 0)
+        limit = ACCOUNTS[acc_id]['limit']
+        
+        # Check if credentials exist and limit not reached
+        if ACCOUNTS[acc_id]['user'] and current_count < limit:
+            return acc_id, ACCOUNTS[acc_id]
+            
+    return None, None # No accounts available
 
 def main():
     # --- LOGIN MOODLE ---
@@ -170,14 +196,14 @@ def main():
     state = load_state()
     emails_sent_this_run = 0
 
-    print(f"Daily Stats: Acc1={state['count_1']} | Acc2={state['count_2']}")
+    print(f"Daily Stats: Gmail={state['count_1']} | Brevo1={state['count_2']} | Brevo2={state['count_3']}")
 
     for user_id in user_ids:
         # 1. Get Next Sender Account
-        acc_id, active_user, active_pass = get_next_account(state)
+        acc_id, acc_config = get_next_account(state)
         
-        if not active_user:
-            print("Daily limits reached for BOTH accounts. Stopping.")
+        if not acc_config:
+            print("Daily limits reached for ALL accounts. Stopping.")
             break
 
         # 2. Scrape Profile
@@ -199,16 +225,15 @@ def main():
                 if any(x in email for x in ["javascript", "testcentr", "mathjax"]): continue
                 if email in sent_history: continue
 
-                print(f"Sending to {full_name} ({email}) via {active_user}...")
+                print(f"Sending to {full_name} ({email}) via {acc_config['name']}...")
                 
-                if send_email(active_user, active_pass, email, full_name, city):
+                if send_email(acc_config, email, full_name, city):
                     print(f" -> SUCCESS")
                     save_to_history(email)
                     
                     # Update State
-                    if acc_id == 1: state['count_1'] += 1
-                    else: state['count_2'] += 1
-                    state['last_used'] = acc_id # Flip for next turn
+                    state[f'count_{acc_id}'] += 1
+                    state['last_used'] = acc_id 
                     save_state(state)
                     
                     emails_sent_this_run += 1
