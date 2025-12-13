@@ -20,20 +20,11 @@ MOODLE_USER = os.environ.get("MOODLE_USER")
 MOODLE_PASS = os.environ.get("MOODLE_PASS")
 TELEGRAM_LINK = os.environ.get("TELEGRAM_LINK")
 
-# THE NEW DOMAIN EMAIL (For Brevo Accounts)
+# DOMAIN EMAIL
 DOMAIN_EMAIL = "support@krok-help.xyz"
 
+# ONLY BREVO ACCOUNTS NOW
 ACCOUNTS = {
-    1: {
-        "name": "Gmail Main",
-        "type": "gmail",
-        "user": os.environ.get("GMAIL_USER"),
-        "pass": os.environ.get("GMAIL_APP_PASS"),
-        "host": "smtp.gmail.com",
-        "port": 587,
-        "limit": 495,
-        "from_email": os.environ.get("GMAIL_USER") # Gmail sends as itself
-    },
     2: {
         "name": "Brevo Account 1",
         "type": "brevo",
@@ -41,8 +32,8 @@ ACCOUNTS = {
         "pass": os.environ.get("BREVO_PASS_1"),
         "host": "smtp-relay.brevo.com",
         "port": 587,
-        "limit": 295, # Safety buffer below 300
-        "from_email": DOMAIN_EMAIL # Sends as support@krok-help.xyz
+        "limit": 295, # Safety buffer
+        "from_email": DOMAIN_EMAIL 
     },
     3: {
         "name": "Brevo Account 2",
@@ -51,8 +42,8 @@ ACCOUNTS = {
         "pass": os.environ.get("BREVO_PASS_2"),
         "host": "smtp-relay.brevo.com",
         "port": 587,
-        "limit": 295, # Safety buffer below 300
-        "from_email": DOMAIN_EMAIL # Sends as support@krok-help.xyz
+        "limit": 295, # Safety buffer
+        "from_email": DOMAIN_EMAIL 
     }
 }
 
@@ -68,8 +59,8 @@ def get_random_content(user_name):
         "Якщо ви готуєтесь до КРОК, наша повна база питань із відповідями зекономить ваш час."
     ]
     ua_offers = [
-        "Є два варіанти:\n1. PDF-файл з усіма питаннями (399 грн)\n2. Інтерактивний Quiz для тренування (499 грн)",
-        "Доступні формати:\n- PDF з відповідями (399 грн)\n- Quiz-тренажер (499 грн)"
+        "Є два варіанти:\n1. PDF-файл з усіма питаннями (299 грн)\n2. Інтерактивний Quiz для тренування (399 грн)",
+        "Доступні формати:\n- PDF з відповідями (299 грн)\n- Quiz-тренажер (399 грн)"
     ]
     ua_ctas = [
         "Щоб отримати матеріали, знайдіть нас у Telegram: введіть у пошук @kovalkatia",
@@ -81,7 +72,7 @@ def get_random_content(user_name):
 
     en_greetings = [f"Hello {user_name},", f"Hi {user_name},"]
     en_intros = ["We have the complete updated database of 'Center of Testing' questions with correct answers."]
-    en_offers = ["Options available:\n- Full PDF (399 UAH)\n- Interactive Quiz (499 UAH)"]
+    en_offers = ["Options available:\n- Full PDF (299 UAH)\n- Interactive Quiz (399 UAH)"]
     en_ctas = ["To get access, open Telegram and search for: @kovalkatia", "Interested? Reply to this email or find us on Telegram: @kovalkatia"]
     en_signoffs = ["Best regards,", "Good luck!"]
 
@@ -101,14 +92,14 @@ def get_random_content(user_name):
 # --- STATE MANAGEMENT ---
 def load_state():
     today = datetime.datetime.now().strftime("%Y-%m-%d")
-    default_state = {"date": today, "count_1": 0, "count_2": 0, "count_3": 0, "last_used": 3}
+    # Default starts with last_used 3, so next is 2
+    default_state = {"date": today, "count_2": 0, "count_3": 0, "last_used": 3}
     
     if not os.path.exists(STATE_FILE): return default_state
     try:
         with open(STATE_FILE, 'r') as f:
             state = json.load(f)
             if state.get("date") != today: return default_state
-            if "count_3" not in state: state["count_3"] = 0
             return state
     except: return default_state
 
@@ -127,7 +118,6 @@ def send_email(account_config, to_email, user_name, city):
     subject, body = get_random_content(user_name)
     msg = MIMEMultipart()
     
-    # DYNAMIC FROM ADDRESS
     msg['From'] = account_config['from_email']
     msg['To'] = to_email
     msg['Subject'] = subject
@@ -146,10 +136,10 @@ def send_email(account_config, to_email, user_name, city):
 
 def get_next_account(state):
     last = state.get('last_used', 3)
-    # Rotation Logic: 1 -> 2 -> 3 -> 1
-    if last == 1: order = [2, 3, 1]
-    elif last == 2: order = [3, 1, 2]
-    else: order = [1, 2, 3]
+    
+    # Simple Toggle: If 2 -> 3. If 3 -> 2.
+    if last == 2: order = [3, 2]
+    else: order = [2, 3]
 
     for acc_id in order:
         current_count = state.get(f"count_{acc_id}", 0)
@@ -187,13 +177,13 @@ def main():
     state = load_state()
     emails_sent_this_run = 0
 
-    print(f"Daily Stats: Gmail={state['count_1']} | Brevo1={state['count_2']} | Brevo2={state['count_3']}")
+    print(f"Daily Stats: Brevo1={state['count_2']} | Brevo2={state['count_3']}")
 
     for user_id in user_ids:
         acc_id, acc_config = get_next_account(state)
         
         if not acc_config:
-            print("Daily limits reached for ALL accounts. Stopping.")
+            print("Daily limits reached for BOTH Brevo accounts. Stopping.")
             break
 
         try:
