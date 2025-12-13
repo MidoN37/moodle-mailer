@@ -33,10 +33,6 @@ jobs:
           # Telegram
           TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}
 
-          # Account 1: Gmail
-          GMAIL_USER: ${{ secrets.GMAIL_USER }}
-          GMAIL_APP_PASS: ${{ secrets.GMAIL_APP_PASS }}
-          
           # Account 2: Brevo 1
           BREVO_USER_1: ${{ secrets.BREVO_USER_1 }}
           BREVO_PASS_1: ${{ secrets.BREVO_PASS_1 }}
@@ -52,18 +48,12 @@ jobs:
           git config --global user.name 'GitHub Action'
           git config --global user.email 'action@github.com'
           
-          # Add the files
           git add history.txt bot_state.json
           
-          # Check if there are changes (if not, skip the rest)
           if ! git diff --staged --quiet; then
             echo "Changes detected. Committing..."
             git commit -m "Update state [skip ci]"
-            
-            # PULL latest changes first to avoid the "rejected" error
             git pull --rebase origin main
-            
-            # Now Push
             git push origin HEAD:main
           else
             echo "No changes to commit."
