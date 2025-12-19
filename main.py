@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 
 # --- CONFIGURATION ---
 MOODLE_LOGIN_URL = "https://test.testcentr.org.ua/login/index.php"
-MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/?redirect=0" 
+MOODLE_ONLINE_USERS_URL = "https://test.testcentr.org.ua/course/view.php?id=4" 
 HISTORY_FILE = "history.txt"
 STATE_FILE = "bot_state.json" 
 
