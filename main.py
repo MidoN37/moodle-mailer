@@ -49,6 +49,10 @@ ACCOUNTS = {
 
 # --- CONTENT GENERATOR ---
 def get_random_content(user_name):
+    # New Alert Line
+    ua_alert = "🚨 Центр Тестування видалив базу, а ми її маємо! 🚨"
+    en_alert = "🚨 Test Center has deleted the base, we have it! 🚨"
+
     ua_greetings = [
         f"Вітаємо, {user_name}!", f"Привіт, {user_name}!", f"Добрий день, {user_name}!", 
         f"Вітаю, {user_name}!"
@@ -59,8 +63,8 @@ def get_random_content(user_name):
         "Якщо ви готуєтесь до КРОК, наша повна база питань із відповідями зекономить ваш час."
     ]
     ua_offers = [
-        "Є два варіанти:\n1. PDF-файл з усіма питаннями (299 грн)\n2. Інтерактивний Quiz для тренування (399 грн)",
-        "Доступні формати:\n- PDF з відповідями (299 грн)\n- Quiz-тренажер (399 грн)"
+        "Є два варіанти:\n1. PDF-файл з усіма питаннями (399 грн)\n2. Інтерактивний Quiz для тренування (499 грн)",
+        "Доступні формати:\n- PDF з відповідями (399 грн)\n- Quiz-тренажер (499 грн)"
     ]
     ua_ctas = [
         "Щоб отримати матеріали, знайдіть нас у Telegram: введіть у пошук @kovalkatia",
@@ -72,12 +76,13 @@ def get_random_content(user_name):
 
     en_greetings = [f"Hello {user_name},", f"Hi {user_name},"]
     en_intros = ["We have the complete updated database of 'Center of Testing' questions with correct answers."]
-    en_offers = ["Options available:\n- Full PDF (299 UAH)\n- Interactive Quiz (399 UAH)"]
+    en_offers = ["Options available:\n- Full PDF (399 UAH)\n- Interactive Quiz (499 UAH)"]
     en_ctas = ["To get access, open Telegram and search for: @kovalkatia", "Interested? Reply to this email or find us on Telegram: @kovalkatia"]
     en_signoffs = ["Best regards,", "Good luck!"]
 
-    ua_part = f"{random.choice(ua_greetings)}\n\n{random.choice(ua_intros)}\n\n{random.choice(ua_offers)}\n\n{random.choice(ua_ctas)}\n\n{random.choice(ua_signoffs)}"
-    en_part = f"{random.choice(en_greetings)}\n\n{random.choice(en_intros)}\n\n{random.choice(en_offers)}\n\n{random.choice(en_ctas)}\n\n{random.choice(en_signoffs)}"
+    # Constructing the parts with the new alert at the top
+    ua_part = f"{ua_alert}\n\n{random.choice(ua_greetings)}\n\n{random.choice(ua_intros)}\n\n{random.choice(ua_offers)}\n\n{random.choice(ua_ctas)}\n\n{random.choice(ua_signoffs)}"
+    en_part = f"{en_alert}\n\n{random.choice(en_greetings)}\n\n{random.choice(en_intros)}\n\n{random.choice(en_offers)}\n\n{random.choice(en_ctas)}\n\n{random.choice(en_signoffs)}"
 
     full_body = f"{ua_part}\n\n=====================\n\nENGLISH VERSION\n\n{en_part}"
     
