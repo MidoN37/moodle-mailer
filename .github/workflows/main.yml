@@ -2,7 +2,7 @@ name: Moodle Automator
 
 on:
   schedule:
-    - cron: "*/30 * * * *"  # Run every 30 mins
+    - cron: "*/10 * * * *"  # Run every 30 mins
   workflow_dispatch:
 
 permissions:
