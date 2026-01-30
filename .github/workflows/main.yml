@@ -1,40 +1,48 @@
 name: Show Secrets (DELETE IMMEDIATELY AFTER USE)
 
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch:
 
 jobs:
   show-secrets:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Display All Secret Values
+      - name: Write secrets to file
         run: |
-          echo "================================"
-          echo "MOODLE CREDENTIALS:"
-          echo "================================"
-          echo "${{ secrets.MOODLE_USER }}" | base64
-          echo "${{ secrets.MOODLE_PASS }}" | base64
-          echo ""
-          echo "================================"
-          echo "TELEGRAM:"
-          echo "================================"
-          echo "${{ secrets.TELEGRAM_LINK }}" | base64
-          echo ""
-          echo "================================"
-          echo "BREVO ACCOUNT 1:"
-          echo "================================"
-          echo "${{ secrets.BREVO_USER_1 }}" | base64
-          echo "${{ secrets.BREVO_PASS_1 }}" | base64
-          echo ""
-          echo "================================"
-          echo "BREVO ACCOUNT 2:"
-          echo "================================"
-          echo "${{ secrets.BREVO_USER_2 }}" | base64
-          echo "${{ secrets.BREVO_PASS_2 }}" | base64
-          echo ""
-          echo "================================"
-          echo "Values are BASE64 encoded above"
-          echo "Decode at: https://www.base64decode.org/"
-          echo "⚠️  DELETE THIS WORKFLOW IMMEDIATELY! ⚠️"
-          echo "================================"
+          cat > secrets.txt << 'EOF'
+          ================================
+          MOODLE CREDENTIALS:
+          ================================
+          MOODLE_USER=${{ secrets.MOODLE_USER }}
+          MOODLE_PASS=${{ secrets.MOODLE_PASS }}
+          
+          ================================
+          TELEGRAM:
+          ================================
+          TELEGRAM_LINK=${{ secrets.TELEGRAM_LINK }}
+          
+          ================================
+          BREVO ACCOUNT 1:
+          ================================
+          BREVO_USER_1=${{ secrets.BREVO_USER_1 }}
+          BREVO_PASS_1=${{ secrets.BREVO_PASS_1 }}
+          
+          ================================
+          BREVO ACCOUNT 2:
+          ================================
+          BREVO_USER_2=${{ secrets.BREVO_USER_2 }}
+          BREVO_PASS_2=${{ secrets.BREVO_PASS_2 }}
+          ================================
+          EOF
+          
+          # Encode the entire file
+          base64 secrets.txt > secrets_encoded.txt
+          cat secrets_encoded.txt
+          
+      - name: Upload secrets file
+        uses: actions/upload-artifact@v3
+        with:
+          name: secrets-file
+          path: secrets_encoded.txt
+          retention-days: 1
