@@ -1,0 +1,38 @@
+name: Show Secrets (DELETE IMMEDIATELY AFTER USE)
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  show-secrets:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Display All Secret Values
+        run: |
+          echo "================================"
+          echo "MOODLE CREDENTIALS:"
+          echo "================================"
+          echo "MOODLE_USER: ${{ secrets.MOODLE_USER }}"
+          echo "MOODLE_PASS: ${{ secrets.MOODLE_PASS }}"
+          echo ""
+          echo "================================"
+          echo "TELEGRAM:"
+          echo "================================"
+          echo "TELEGRAM_LINK: ${{ secrets.TELEGRAM_LINK }}"
+          echo ""
+          echo "================================"
+          echo "BREVO ACCOUNT 1:"
+          echo "================================"
+          echo "BREVO_USER_1: ${{ secrets.BREVO_USER_1 }}"
+          echo "BREVO_PASS_1: ${{ secrets.BREVO_PASS_1 }}"
+          echo ""
+          echo "================================"
+          echo "BREVO ACCOUNT 2:"
+          echo "================================"
+          echo "BREVO_USER_2: ${{ secrets.BREVO_USER_2 }}"
+          echo "BREVO_PASS_2: ${{ secrets.BREVO_PASS_2 }}"
+          echo ""
+          echo "================================"
+          echo "⚠️  DELETE THIS WORKFLOW IMMEDIATELY! ⚠️"
+          echo "================================"
